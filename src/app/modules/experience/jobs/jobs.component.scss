@@ -1,0 +1,14 @@
+@import '../../../../styles/_flex-mixins.scss';
+
+.flex-container {
+  @include flexbox;
+  @include flex-wrap(wrap);
+  @include justify-content(space-evenly);
+}
+
+.job-card {
+  width: 350px;
+  margin-top: 10px;
+  height: 200px;
+  border-radius: 10px;
+}

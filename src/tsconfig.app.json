@@ -1,0 +1,32 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/app",
+    "types": [],
+    "baseUrl": "./",
+    "paths": {
+      "@shared/*": [
+        "app/modules/shared/*"
+      ],
+      "@home/*": [
+        "app/modules/home/*"
+      ],
+      "@experience/*": [
+        "app/modules/experience/*"
+      ],
+      "@photography/*": [
+        "app/modules/photography/*"
+      ],
+      "@material/*": [
+        "app/modules/material/*"
+      ],
+      "@app/*": [
+        "app/*"
+      ]
+    }
+  },
+  "exclude": [
+    "src/test.ts",
+    "**/*.spec.ts"
+  ]
+}

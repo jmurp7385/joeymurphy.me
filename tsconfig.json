@@ -2,6 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./src/",
+    "importHelpers": true,
     "paths": {
       "@home/*": [
         "app/modules/home/*"

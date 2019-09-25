@@ -1,0 +1,45 @@
+.nav-root {
+  width: 100vw;
+  height: 48px;
+  background-color: #303030;
+  display: flex;
+  align-items: center;
+}
+
+.nav-title {
+  color: #fafafa;
+  margin: 0 24px;
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+.nav-list {
+  display: flex;
+  list-style-type: none;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.nav-list-item {
+  width: 80px;
+  padding: 8px;
+  margin: auto;
+
+  &:last-of-type {
+    padding-right: 24px;
+
+  }
+
+  a {
+    text-decoration: none;
+    color: #fafafa;
+
+    :visited {
+      color: #fafafa;
+    }
+  }
+}

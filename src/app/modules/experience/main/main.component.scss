@@ -1,8 +1,0 @@
-@import '../../../../styles/_flex-mixins.scss';
-
-.project-container {
-  @include flexbox;
-  @include flex-wrap(wrap);
-  @include justify-content(space-evenly);
-  @include align-items(flex-start);
-}

@@ -1,48 +1,29 @@
 {
-  "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "./src/",
-    "importHelpers": true,
-    "paths": {
-      "@home/*": [
-        "app/modules/home/*"
-      ],
-      "@shared/*": [
-        "app/modules/shared/*"
-      ],
-      "@photography/*": [
-        "app/modules/photography/*"
-      ],
-      "@experience/*": [
-        "app/modules/experience/*"
-      ],
-      "@material/*": [
-        "app/modules/material/*"
-      ],
-      "@app/*": [
-        "app/*"
-      ]
-    },
-    "outDir": "./dist/out-tsc",
-    "sourceMap": true,
-    "declaration": false,
-    "module": "es2015",
-    "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
     "target": "es5",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
     "lib": [
-      "es2017",
-      "dom"
-    ]
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
   },
   "include": [
-    "src/**/*"
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
   ],
-  "files": [
-    "src/app/app.module.ts",
+  "exclude": [
+    "node_modules"
   ]
 }

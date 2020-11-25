@@ -5,8 +5,7 @@ import { Icon } from "@iconify/react";
 // import instagramIcon from "@iconify-icons/logos/instagram-icon";
 // import linkedinIcon from "@iconify-icons/logos/linkedin";
 // import githubIcon from "@iconify-icons/logos/github-icon";
-// import instagramIcon from '@iconify-icons/cib/instagram'
-import instagramIcon from '@iconify-icons/cib/src/instagram'
+import instagramIcon from '@iconify-icons/cib/instagram'
 import githubIcon from '@iconify-icons/cib/github'
 import linkedinIcon from '@iconify-icons/cib/linkedin'
 

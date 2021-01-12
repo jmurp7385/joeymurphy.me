@@ -24,7 +24,6 @@ export default function Home() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>Joey Murphy</h1>
-
         <p className={styles.description}>
           <a href='https://github.com/jmurp7385'>Software Engineer</a>
           &nbsp;&&nbsp;

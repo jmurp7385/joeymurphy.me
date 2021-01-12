@@ -1,0 +1,19 @@
+{
+  "name": "Joey Murphy's homepage",
+  "short_name": "Joey's homepage",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#122c38bf",
+  "background_color": "#427c8d7c",
+  "display": "standalone"
+}

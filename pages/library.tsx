@@ -7,39 +7,24 @@ import instagramIcon from "@iconify-icons/cib/instagram";
 import githubIcon from "@iconify-icons/cib/github";
 import linkedinIcon from "@iconify-icons/cib/linkedin";
 
-export default function Home() {
+export default function Library() {
   return (
     <div className={styles.container}>
       <Head>
         <link rel='icon' href='/favicon-16x16.png' />
       </Head>
       <NextSeo
-        title={"Joey Murphy"}
-        description={"Homepage of Joey Murphy"}
+        title={"Library"}
+        description={"Joey's Library & Stats"}
         openGraph={{
           url: "https://www.joeymurphy.me",
-          title: "Joey Murphy",
-          description: "Homepage of Joey Murphy",
+          title: "Joey's Libary",
+          description: "Library of Joey Murphy",
         }}
       />
 
       <main className={styles.main}>
-        <h1 className={styles.title}>Joey Murphy</h1>
-        <p className={styles.description}>
-          <a href='https://github.com/jmurp7385'>Software Engineer</a>
-          ,&nbsp;
-          <a href='https://www.instagram.com/joeymurphy.photography/' >
-            Photographer
-          </a>
-          ,&nbsp;
-          <a href='/library' >
-            Reader
-          </a>
-          ,&nbsp;&&nbsp;
-          <a href='https://www.instagram.com/joeymurphy.photography/' >
-            Climber
-          </a>
-        </p>
+
       </main>
 
       <footer className={styles.footer}>

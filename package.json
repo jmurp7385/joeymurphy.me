@@ -9,7 +9,7 @@
     "next": "next"
   },
   "dependencies": {
-    "next": "10.0.2",
+    "next": "11.1.0",
     "next-seo": "^4.17.0",
     "next-transpile-modules": "^4.1.0",
     "react": "17.0.0",

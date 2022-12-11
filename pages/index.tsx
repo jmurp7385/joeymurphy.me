@@ -1,10 +1,13 @@
 import Head from "next/head";
 import styles from "../styles/Home.module.css";
 import { NextSeo } from "next-seo";
-import { Icon } from "@iconify/react";
-import instagramIcon from "@iconify-icons/cib/instagram";
-import githubIcon from "@iconify-icons/cib/github";
-import linkedinIcon from "@iconify-icons/cib/linkedin";
+import Footer from '../components/Footer';
+
+const SEO = {
+  title: "Joey Murphy",
+  description: "Homepage of Joey Murphy",
+  url: "https://joeymurphy.me",
+}
 
 export default function Home() {
   return (
@@ -13,15 +16,14 @@ export default function Home() {
         <link rel='icon' href='/favicon-16x16.png' />
       </Head>
       <NextSeo
-        title={"Joey Murphy"}
-        description={"Homepage of Joey Murphy"}
+        title={SEO.title}
+        description={SEO.description}
         openGraph={{
-          url: "https://www.joeymurphy.me",
-          title: "Joey Murphy",
-          description: "Homepage of Joey Murphy",
+          url: SEO.url,
+          title: SEO.title,
+          description: SEO.description,
         }}
       />
-
       <main className={styles.main}>
         <h1 className={styles.title}>Joey Murphy</h1>
         <p className={styles.description}>
@@ -32,30 +34,7 @@ export default function Home() {
           </a>
         </p>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href='https://github.com/jmurp7385'
-          className={styles.socialMediaIconLink}
-          aria-label={'Github'}
-        >
-          <Icon icon={githubIcon} />
-        </a>
-        <a
-          className={styles.socialMediaIconLink}
-          href='https://www.linkedin.com/in/joeymurphy/'
-          aria-label={'Linkedin'}
-        >
-          <Icon icon={linkedinIcon}></Icon>
-        </a>
-        <a
-          href='https://www.instagram.com/joeymurphy.photography/'
-          className={styles.socialMediaIconLink}
-          aria-label={'Instagram'}
-        >
-          <Icon icon={instagramIcon} />
-        </a>
-      </footer>
+      <Footer />
     </div>
   );
 }

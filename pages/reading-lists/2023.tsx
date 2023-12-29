@@ -1,6 +1,7 @@
 import styles from "../../styles/ReadingLists.module.css";
 import Footer from "../../components/Footer";
 import commonStyles from "../../styles/common.module.css";
+import Breadcrumbs, { tranformLabelHuman } from '../../components/Breadcrumbs';
 
 const bookList = [
   { title: 'America Before', date: '1/10/23', link: '', },
@@ -45,13 +46,15 @@ export default function ReadingList2023()
 {
   return (
     <main className={styles.main}>
+            <Breadcrumbs containerStyle={{alignSelf: 'flex-start', paddingBottom: '2.5rem'}} transformLabel={tranformLabelHuman}/>
+
       <h1 className={styles.title}>Reading List 2023</h1>
       <p className={styles.description}>Ordered by completion</p>
       <ol className={styles.container}>
         {bookList.map((book) =>
         {
           return (
-            <li key={book.title}>
+            <li className={styles.listItem} key={book.title}>
               <a href={book.link}>{book.title}</a>&nbsp;({book.date})
             </li>
           );

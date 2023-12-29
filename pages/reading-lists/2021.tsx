@@ -1,6 +1,7 @@
 import styles from "../../styles/ReadingLists.module.css";
 import Footer from "../../components/Footer";
 import commonStyles from "../../styles/common.module.css";
+import Breadcrumbs, { tranformLabelHuman } from '../../components/Breadcrumbs';
 
 const bookList = [
   { title: "Harry Potter and the Sorcerer's Stone", link: "" },
@@ -37,10 +38,10 @@ const bookList = [
   { title: "Percy Jackson and the Greek Heroes", link: "" },
   { title: "Elon Musk (audible)", link: "" },
   { title: "American Revolutions (audible)", link: "" },
-  { title: "Into thin air (audible)", link: "" },
+  { title: "Into Thin Air (audible)", link: "" },
   { title: "Antimatter", link: "" },
-  { title: "Fablehaven ", link: "" },
-  { title: "Fablehaven Rise or the Evening Star", link: "" },
+  { title: "Fablehaven", link: "" },
+  { title: "Fablehaven Rise of the Evening Star", link: "" },
   { title: "Fablehaven Grip of the Shadow Plague", link: "" },
   { title: "Fablehaven Secrets of the Dragon Sanctuary", link: "" },
   { title: "Fablehaven Keys to the Demon Prison", link: "" },
@@ -63,6 +64,8 @@ const bookList = [
 export default function ReadingList2021() {
   return (
     <main className={styles.main}>
+            <Breadcrumbs containerStyle={{alignSelf: 'flex-start', paddingBottom: '2.5rem'}} transformLabel={tranformLabelHuman}/>
+
       <h1 className={styles.title}>Reading List 2021</h1>
       <p className={styles.description}>My aim in 2021 was to read 52 books. Here they are...</p>
       <ol className={styles.container}>

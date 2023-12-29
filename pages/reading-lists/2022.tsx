@@ -1,6 +1,7 @@
 import styles from "../../styles/ReadingLists.module.css";
 import Footer from "../../components/Footer";
 import commonStyles from "../../styles/common.module.css";
+import Breadcrumbs, { tranformLabelHuman } from '../../components/Breadcrumbs';
 
 const bookList = [
 {title: 'Sword of Destiny',link: '',},
@@ -18,6 +19,8 @@ const bookList = [
 export default function ReadingList2022() {
   return (
     <main className={styles.main}>
+            <Breadcrumbs containerStyle={{alignSelf: 'flex-start', paddingBottom: '2.5rem'}} transformLabel={tranformLabelHuman}/>
+
       <h1 className={styles.title}>Reading List 2022</h1>
       <p className={styles.description}>Ordered by completion</p>
       <ol className={styles.container}>

@@ -33,10 +33,9 @@ export default function Home() {
           <a href='https://www.instagram.com/joeymurphy.photography/' >
             Photographer
           </a>
+          .&nbsp;
+          <Link href="/reading-lists">See what I have been reading!</Link>
         </p>
-      <section>
-         <Link href="/reading-lists">Reading Lists</Link>
-      </section>
       </main>
       <Footer />
     </div>

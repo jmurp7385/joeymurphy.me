@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import styles from './Breadcrumbs.module.css'
-
+import styles from './Breadcrumbs.module.css';
 
 /**
  * https://www.freecodecamp.org/news/how-to-capitalize-words-in-javascript/
@@ -10,7 +9,9 @@ import styles from './Breadcrumbs.module.css'
  * @returns
  */
 export function tranformLabelHuman(str: string): string {
-  return str.replace('-', ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase());
+  return str
+    .replace('-', ' ')
+    .replace(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
 }
 
 /**
@@ -36,7 +37,7 @@ const convertBreadcrumb = (
   title: string,
   toUpperCase: boolean | undefined,
   replaceCharacterList: Array<CharacterMap> | undefined,
-  transformLabel?: ((title: string) => React.ReactNode) | undefined
+  transformLabel?: ((title: string) => React.ReactNode) | undefined,
 ): React.ReactNode => {
   let transformedTitle = getPathFromUrl(title);
 
@@ -48,13 +49,15 @@ const convertBreadcrumb = (
     for (let i = 0; i < replaceCharacterList.length; i++) {
       transformedTitle = transformedTitle.replaceAll(
         replaceCharacterList[i].from,
-        replaceCharacterList[i].to
+        replaceCharacterList[i].to,
       );
     }
   }
 
   // decode for utf-8 characters and return ascii.
-  return toUpperCase ? decodeURI(transformedTitle).toUpperCase() : decodeURI(transformedTitle);
+  return toUpperCase
+    ? decodeURI(transformedTitle).toUpperCase()
+    : decodeURI(transformedTitle);
 };
 
 export interface Breadcrumb {
@@ -169,7 +172,7 @@ const Breadcrumbs = ({
 }: BreadcrumbsProps) => {
   const router = useRouter();
   const [breadcrumbs, setBreadcrumbs] = useState<Array<Breadcrumb> | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -195,22 +198,19 @@ const Breadcrumbs = ({
   return (
     <nav
       style={containerStyle}
-      aria-label="breadcrumbs"
+      aria-label='breadcrumbs'
       className={styles.container}
     >
-      <div
-        style={listStyle}
-        className={styles.breadcrumbs}
-      >
+      <div style={listStyle} className={styles.breadcrumbs}>
         {!omitRootLabel && (
           <div style={inactiveItemStyle} className={inactiveItemClassName}>
-            <Link href="/">
-                {convertBreadcrumb(
-                  rootLabel || 'Home',
-                  labelsToUppercase,
-                  replaceCharacterList,
-                  transformLabel
-                )}
+            <Link href='/'>
+              {convertBreadcrumb(
+                rootLabel || 'Home',
+                labelsToUppercase,
+                replaceCharacterList,
+                transformLabel,
+              )}
             </Link>
           </div>
         )}
@@ -225,30 +225,30 @@ const Breadcrumbs = ({
             }
             return (
               <>
-              &nbsp;&gt;&nbsp;
-              <div
-                key={breadcrumb.href}
-                className={
-                  i === breadcrumbs.length - 1
-                    ? activeItemClassName
-                    : inactiveItemClassName
+                &nbsp;&gt;&nbsp;
+                <div
+                  key={breadcrumb.href}
+                  className={
+                    i === breadcrumbs.length - 1
+                      ? activeItemClassName
+                      : inactiveItemClassName
                   }
                   style={
                     i === breadcrumbs.length - 1
-                    ? activeItemStyle
-                    : inactiveItemStyle
+                      ? activeItemStyle
+                      : inactiveItemStyle
                   }
-                  >
-                <Link href={breadcrumb.href}>
+                >
+                  <Link href={breadcrumb.href}>
                     {convertBreadcrumb(
                       breadcrumb.breadcrumb,
                       labelsToUppercase,
                       replaceCharacterList,
-                      transformLabel
-                      )}
-                </Link>
-              </div>
-                      </>
+                      transformLabel,
+                    )}
+                  </Link>
+                </div>
+              </>
             );
           })}
       </div>

@@ -1,13 +1,13 @@
-import Head from "next/head";
-import styles from "../styles/Home.module.css";
-import { NextSeo } from "next-seo";
-import Footer from "../components/Footer";
-import Link from "next/link";
+import Head from 'next/head';
+import styles from '../styles/Home.module.css';
+import { NextSeo } from 'next-seo';
+import Footer from '../components/Footer';
+import Link from 'next/link';
 
 const SEO = {
-  title: "Joey Murphy",
-  description: "Homepage of Joey Murphy",
-  url: "https://joeymurphy.me",
+  title: 'Joey Murphy',
+  description: 'Homepage of Joey Murphy',
+  url: 'https://joeymurphy.me',
 };
 
 export default function Home() {
@@ -34,7 +34,7 @@ export default function Home() {
             Photographer
           </a>
         </p>
-        <p className={styles.description} style={{marginTop: 0}}>
+        <p className={styles.description} style={{ marginTop: 0 }}>
           <Link href='/reading-lists'>See what I have been reading!</Link>
         </p>
       </main>

@@ -9,6 +9,8 @@ html,
 body,
 #__next {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 a {
   color: inherit;
@@ -21,4 +23,13 @@ a {
 h1,
 p {
   color: #fafafa;
+}
+
+li {
+  font-size: 1.5rem;
+  line-height: 1.5;
+}
+
+p {
+  line-height: 1.5;
 }

@@ -2,7 +2,7 @@ import { Icon } from "@iconify/react";
 import instagramIcon from "@iconify-icons/cib/instagram";
 import githubIcon from "@iconify-icons/cib/github";
 import linkedinIcon from "@iconify-icons/cib/linkedin";
-import styles from "../styles/Home.module.css";
+import styles from "../styles/Footer.module.css";
 
 function Footer() {
   return (
@@ -11,7 +11,7 @@ function Footer() {
         href='https://github.com/jmurp7385'
         className={styles.socialMediaIconLink}
         aria-label={"Github"}
-      >
+        >
         <Icon icon={githubIcon} />
       </a>
       <a
@@ -25,7 +25,7 @@ function Footer() {
         href='https://www.instagram.com/joeymurphy.photography/'
         className={styles.socialMediaIconLink}
         aria-label={"Instagram"}
-      >
+        >
         <Icon icon={instagramIcon} />
       </a>
     </footer>

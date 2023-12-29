@@ -2,6 +2,7 @@ import Head from "next/head";
 import styles from "../styles/Home.module.css";
 import { NextSeo } from "next-seo";
 import Footer from '../components/Footer';
+import Link from 'next/link'
 
 const SEO = {
   title: "Joey Murphy",
@@ -33,6 +34,9 @@ export default function Home() {
             Photographer
           </a>
         </p>
+      <section>
+         <Link href="/reading-lists">Reading Lists</Link>
+      </section>
       </main>
       <Footer />
     </div>

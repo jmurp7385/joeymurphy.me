@@ -6,13 +6,13 @@ import Breadcrumbs, { tranformLabelHuman } from "../../components/Breadcrumbs";
 const bookList = [
   { title: "Sword of Destiny", link: "" },
   { title: "Blood of Elves", link: "" },
-  { title: "Time of contempt", link: "" },
+  { title: "Time of Contempt", link: "" },
   { title: "Baptism of Fire", link: "" },
   { title: "Tower of Swallows", link: "" },
   { title: "Lady of the Lake", link: "" },
   { title: "Season of Storms", link: "" },
-  { title: "She comes first", link: "" },
-  { title: "Fingerprints of the gods", link: "" },
+  { title: "She Comes First", link: "" },
+  { title: "Fingerprints of the Gods", link: "" },
   { title: "Magicians of the Gods", link: "" },
 ];
 

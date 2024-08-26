@@ -30,9 +30,7 @@ export default function Home() {
         <p className={styles.description}>
           <a href='https://github.com/jmurp7385'>Software Engineer</a>
           &nbsp;&&nbsp;
-          <a href='https://www.instagram.com/joeymurphy.photography/'>
-            Photographer
-          </a>
+          <a href='https://www.joeymurphy.photography/'>Photographer</a>
         </p>
         <p className={styles.description} style={{ marginTop: 0 }}>
           <Link href='/reading-lists'>See what I have been reading!</Link>

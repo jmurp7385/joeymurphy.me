@@ -30,8 +30,11 @@ export function ReadingListPage(props: ReadingListProps) {
       <ol className={styles.container}>
         {books.map((book) => {
           return (
-            <li key={book.title}>
-              <a href={book.link}>{book.title}</a>
+            <li key={book.title} className={styles.listItem}>
+              <div className={styles.book}>
+                <a href={book.link}>{book.title}</a>
+                <p className={styles.date}>&nbsp;{`(${book.date})`}</p>
+              </div>
             </li>
           );
         })}

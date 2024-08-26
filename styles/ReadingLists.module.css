@@ -24,10 +24,20 @@
   color: rgba(18, 44, 56, 0.75);
 }
 
+.date {
+  text-align: center;
+  margin: 0;
+  color: rgba(18, 44, 56, 0.75);
+}
+
 .listItem a:hover {
   color: rgba(18, 44, 56, 1);
 }
 
 .listItem {
   color: rgba(18, 44, 56, 0.75);
+}
+
+.book {
+  display: flex;
 }

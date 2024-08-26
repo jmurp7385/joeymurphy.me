@@ -2,8 +2,9 @@ import styles from '../../styles/ReadingLists.module.css';
 import Footer from '../../components/Footer';
 import commonStyles from '../../styles/common.module.css';
 import Breadcrumbs, { tranformLabelHuman } from '../../components/Breadcrumbs';
+import { Book, ReadingListPage } from '../../components/ReadingListPage';
 
-const bookList = [
+const bookList: Book[] = [
   { title: "Harry Potter and the Sorcerer's Stone", link: '' },
   { title: 'The Power of Now (audible)', link: '' },
   { title: 'Harry Potter and the Chamber of Secrets', link: '' },
@@ -62,28 +63,10 @@ const bookList = [
 ];
 
 export default function ReadingList2021() {
-  return (
-    <main className={styles.main}>
-      <Breadcrumbs
-        containerStyle={{ alignSelf: 'flex-start', paddingBottom: '2.5rem' }}
-        transformLabel={tranformLabelHuman}
-      />
+  const title = 'Reading List 2021';
+  const description = 'My aim in 2021 was to read 52 books. Here they are...';
 
-      <h1 className={styles.title}>Reading List 2021</h1>
-      <p className={styles.description}>
-        My aim in 2021 was to read 52 books. Here they are...
-      </p>
-      <ol className={styles.container}>
-        {bookList.map((book) => {
-          return (
-            <li key={book.title}>
-              <a href={book.link}>{book.title}</a>
-            </li>
-          );
-        })}
-      </ol>
-      <div className={commonStyles.spacer}></div>
-      <Footer />
-    </main>
+  return (
+    <ReadingListPage title={title} description={description} books={bookList} />
   );
 }

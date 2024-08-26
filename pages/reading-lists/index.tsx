@@ -16,6 +16,9 @@ export default function ReadingLists() {
       </h1>
       <ul className={styles.container}>
         <li className={styles.listItem}>
+          <Link href='/reading-lists/2024'>2024</Link>
+        </li>
+        <li className={styles.listItem}>
           <Link href='/reading-lists/2023'>2023</Link>
         </li>
         <li className={styles.listItem}>

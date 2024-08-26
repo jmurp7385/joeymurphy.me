@@ -1,6 +1,6 @@
 import Breadcrumbs, { tranformLabelHuman } from './Breadcrumbs';
-import styles from '../../styles/ReadingLists.module.css';
-import commonStyles from '../../styles/common.module.css';
+import styles from '../styles/ReadingLists.module.css';
+import commonStyles from '../styles/common.module.css';
 import Footer from './Footer';
 
 export interface Book {

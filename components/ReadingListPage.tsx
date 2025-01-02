@@ -32,7 +32,11 @@ export function ReadingListPage(props: ReadingListProps) {
           return (
             <li key={book.title} className={styles.listItem}>
               <div className={styles.book}>
-                <a href={book.link}>{book.title}</a>
+                {book.link?.length ? (
+                  <a href={book.link}>{book.title}</a>
+                ) : (
+                  <p>{book.title}</p>
+                )}
                 {book.date && (
                   <p className={styles.date}>&nbsp;{`(${book.date})`}</p>
                 )}

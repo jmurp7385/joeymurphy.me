@@ -14,6 +14,46 @@ const bookList: Book[] = [
     link: '',
   },
   { title: 'Buddha', date: '5/28/23', link: '' },
+  {
+    title: 'The Wrath of the Triple Headed Goddess',
+    date: '10/17/24',
+    link: '',
+  },
+  {
+    title: 'Magnus Midtbo',
+    date: '10/21/24',
+    link: '',
+  },
+  {
+    title: 'Hillbilly Elegy',
+    date: '11/21/24',
+    link: '',
+  },
+  {
+    title: 'To Sleep in a Sea of Stars',
+    date: '12/1/24',
+    link: '',
+  },
+  {
+    title: 'Fractal Noise',
+    date: '12/2/24',
+    link: '',
+  },
+  {
+    title: 'Murtagh',
+    date: '12/12/24',
+    link: '',
+  },
+  {
+    title: 'Talk to Strangers',
+    date: '12/21/24',
+    link: '',
+  },
+  {
+    title: "The Software Engineer' Guidebook",
+    date: '12/31/24',
+    link: '',
+  },
 ];
 
 export default function ReadingList2024() {

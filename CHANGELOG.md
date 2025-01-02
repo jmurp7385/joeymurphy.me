@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0
+
+- Complete Reading list for 2024
+
 ## 0.3.0
 
 - Reading list 2024 (partial)

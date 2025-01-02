@@ -40,5 +40,9 @@
 
 .book {
   display: flex;
-  align-items: center;
+}
+
+.bookTitle {
+  margin: 0;
+  color: #fafafa;
 }

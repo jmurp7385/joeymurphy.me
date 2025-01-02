@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- fix reading list styles
+
 ## 0.4.0
 
 - Complete Reading list for 2024

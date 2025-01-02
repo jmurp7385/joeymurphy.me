@@ -50,7 +50,7 @@ const bookList: Book[] = [
     link: '',
   },
   {
-    title: "The Software Engineer' Guidebook",
+    title: "The Software Engineer's Guidebook",
     date: '12/31/24',
     link: '',
   },

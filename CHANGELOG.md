@@ -3,6 +3,9 @@
 ## 0.4.0
 
 - Complete Reading list for 2024
+- Next 15
+- React 19
+- only have a tag for books with populated links
 
 ## 0.3.0
 

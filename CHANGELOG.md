@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- reading list for 2025 started
+
 ## 0.4.1
 
 - fix reading list styles

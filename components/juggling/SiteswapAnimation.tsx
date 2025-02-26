@@ -1,15 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
+const defaults = {
+  dwellMin: 50,
+  dwellMax: 5000,
+  speedlimit: 1000,
+  speedMultiplier: 0.1,
+};
+
 export default function SiteswapAnimation() {
   const svgRef = useRef(null);
-  const [siteswap, setSiteswap] = useState([3]);
+  const [siteswap, setSiteswap] = useState([5, 1]);
   const [paused, setPaused] = useState(false);
-  const [dwellMin, setDwellMin] = useState(100); // Min dwell time (ms)
-  const [dwellMax, setDwellMax] = useState(500); // Max dwell time (ms)
+  const [dwellMin, setDwellMin] = useState(1000); // Min dwell time (ms)
+  const [dwellMax, setDwellMax] = useState(5000); // Max dwell time (ms)
   const [paceMultiplier, setPaceMultiplier] = useState(1); // Overall pace scaler
-  const [speedLimit, setSpeedLimit] = useState(2000); // Max throw duration (ms)
-  const [speedMultiplier, setSpeedMultiplier] = useState(1); // Throw speed scaler
+  const [speedLimit, setSpeedLimit] = useState(defaults.speedlimit); // Max throw duration (ms)
+  const [speedMultiplier, setSpeedMultiplier] = useState(
+    defaults.speedMultiplier,
+  ); // Throw speed scaler
   const [throwLimit, setThrowLimit] = useState(0); // 0 = infinite, >0 = limit
   const [throwCount, setThrowCount] = useState(0); // Track total throws
   const [throwTime, setThrowTime] = useState(0); // Total elapsed time (ms)
@@ -19,7 +28,7 @@ export default function SiteswapAnimation() {
   useEffect(() => {
     // SVG dimensions
     const width = 600;
-    const height = 500;
+    const height = 600;
 
     // Create SVG canvas
     const svg = d3
@@ -85,6 +94,7 @@ export default function SiteswapAnimation() {
 
         if (!paused && (throwLimit === 0 || throwCount < throwLimit)) {
           balls.forEach((ball) => {
+            console.log('ball', ball);
             const baseDuration = (ball.currentThrow / beat) * baseThrowDuration;
             const adjustedDuration =
               Math.min(speedLimit, baseDuration / speedMultiplier) /
@@ -260,8 +270,11 @@ export default function SiteswapAnimation() {
               value={dwellMin}
               min='50'
               max={dwellMax}
-              onChange={(e) =>
-                setDwellMin(Math.max(50, parseInt(e.target.value)))
+              onChange={(e) => setDwellMin(parseInt(e.target.value))}
+              onBlur={(e) =>
+                setDwellMin(
+                  Math.max(defaults.dwellMin, parseInt(e.target.value)),
+                )
               }
               style={{ width: '60px', marginLeft: '5px' }}
             />
@@ -274,7 +287,9 @@ export default function SiteswapAnimation() {
               min={dwellMin}
               max='1000'
               onChange={(e) =>
-                setDwellMax(Math.min(1000, parseInt(e.target.value)))
+                setDwellMax(
+                  Math.min(defaults.dwellMax, parseInt(e.target.value)),
+                )
               }
               style={{ width: '60px', marginLeft: '5px' }}
             />

@@ -5,12 +5,12 @@ const defaults = {
   dwellMin: 50,
   dwellMax: 5000,
   speedlimit: 1000,
-  speedMultiplier: 0.1,
+  speedMultiplier: 1,
 };
 
 export default function SiteswapAnimation() {
   const svgRef = useRef(null);
-  const [siteswap, setSiteswap] = useState([5, 1]);
+  const [siteswap, setSiteswap] = useState([3]);
   const [paused, setPaused] = useState(false);
   const [dwellMin, setDwellMin] = useState(1000); // Min dwell time (ms)
   const [dwellMax, setDwellMax] = useState(5000); // Max dwell time (ms)
@@ -42,8 +42,8 @@ export default function SiteswapAnimation() {
       siteswap.reduce((a, b) => a + b, 0) / patternLength,
     );
     const beat = 3;
-    const baseThrowDuration = 1500; // Base time for a "3" throw
-    const beatDuration = baseThrowDuration / (beat + 1); // Time per beat
+    const baseThrowDuration = speedLimit * speedMultiplier; // Base time for a "3" throw
+    const beatDuration = baseThrowDuration / beat; // Time per beat
     const maxHeight = height; // Maximum height
 
     // Ball properties
@@ -67,7 +67,7 @@ export default function SiteswapAnimation() {
         throwIndex: i % patternLength,
       };
     });
-
+    console.log(balls);
     // Animation loop
     function animate() {
       svg.selectAll('.ball').remove();
@@ -90,7 +90,9 @@ export default function SiteswapAnimation() {
       const tick = () => {
         const now = Date.now();
         const elapsedTime = now - startTimeRef.current;
-        setThrowTime(Math.round(elapsedTime / paceMultiplier)); // Update throw time
+        if (!paused) {
+          setThrowTime(Math.round(elapsedTime / paceMultiplier)); // Update throw time
+        }
 
         if (!paused && (throwLimit === 0 || throwCount < throwLimit)) {
           balls.forEach((ball) => {

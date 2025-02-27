@@ -1,4 +1,3 @@
-// Import React hooks for managing component lifecycle and state, and D3.js for SVG manipulation
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
@@ -17,16 +16,17 @@ interface Ball {
   x: number; // Current X-position in SVG
   y: number; // Current Y-position in SVG
   inAir: boolean; // Whether the ball is currently in the air
-  throwTime: number; // Timestamp (ms) when the ball is scheduled to throw next
+  throwTime: number; // Relative time (ms) from animation start when the ball is scheduled to throw next
   fromLeft: boolean; // Indicates if the ball is currently in the left hand
   currentThrow: number; // Current siteswap value (e.g., 3, 4, etc.)
   throwIndex: number; // Current index in the siteswap pattern
+  stagger: number; // Initial stagger offset (ms) from animation start
 }
 
 // Interface for an entry in the throw history
 interface ThrowHistoryEntry {
   id: number; // Ball ID that threw
-  throwTime: number; // Timestamp (ms) when the throw occurred
+  throwTime: number; // Relative time (ms) from animation start when the throw occurred
   fromLeft: boolean; // Whether thrown from the left hand
   value: number; // Siteswap value of the throw (e.g., 3, 4, etc.)
 }
@@ -34,7 +34,7 @@ interface ThrowHistoryEntry {
 /**
  * SiteswapAnimation Component
  * Renders an animated juggling pattern based on a siteswap sequence using D3.js.
- * Ensures correct beat-aligned throws with type safety, logging, and history visualization.
+ * Normalizes time calculations to avoid using absolute 'now' timestamps, includes type safety, logging, and history visualization.
  */
 export default function SiteswapAnimation() {
   // Reference to the SVG element for D3 manipulation
@@ -118,7 +118,8 @@ export default function SiteswapAnimation() {
       x: isLeft ? leftHandX : rightHandX,
       y: handY,
       inAir: false,
-      throwTime: stagger,
+      throwTime: stagger, // Normalized as relative time from animation start
+      stagger, // Store initial stagger for reference
       fromLeft: isLeft,
       currentThrow: siteswap[i % patternLength],
       throwIndex: i % patternLength,
@@ -154,11 +155,10 @@ export default function SiteswapAnimation() {
       startTimeRef.current = Date.now();
 
       // Animation tick function, updates ball positions each frame
-      const tick = () => {
-        const now = Date.now(); // Current timestamp
-        const elapsedTime = now - startTimeRef.current!; // Time since animation start (non-null assertion as set above)
+      const tick = (elapsed: number) => {
+        const elapsedTime = elapsed / paceMultiplier; // Normalized elapsed time adjusted by pace
         if (!paused) {
-          setThrowTime(Math.round(elapsedTime / paceMultiplier)); // Update throw time adjusted by pace
+          setThrowTime(Math.round(elapsedTime)); // Update throw time
         }
 
         // Only update positions if not paused and within throw limit
@@ -170,7 +170,7 @@ export default function SiteswapAnimation() {
               Math.min(speedLimit, baseDuration / speedMultiplier) /
               paceMultiplier; // Apply speed limit, speed multiplier, and pace multiplier
             const peakY = handY - maxHeight * (ball.currentThrow / 9); // Peak height scaled to siteswap value
-            const timeElapsed = now - ball.throwTime; // Time since last throw
+            const timeElapsed = elapsedTime - ball.throwTime; // Time since last throw (relative to start)
             const cycleProgress = Math.min(
               Math.max(timeElapsed / adjustedDuration, 0),
               1,
@@ -187,17 +187,17 @@ export default function SiteswapAnimation() {
                 Math.max(dwellMin, beatDuration / 2),
                 dwellMax,
               ); // Clamp dwell to half beat
-              ball.throwTime = now + dwellTime; // Schedule next throw after dwell
+              ball.throwTime = elapsedTime + dwellTime; // Schedule next throw relative to elapsedTime
               ball.x = ball.fromLeft ? leftHandX : rightHandX; // Move to landing hand
               ball.y = handY; // Reset to hand height
               setThrowCount((prev) => prev + 1); // Increment throw count
               // Log landing event
               console.log(
-                `Ball ${ball.id} landed at ${now}ms, next throw at ${
+                `Ball ${ball.id} landed at ${elapsedTime}ms, next throw at ${
                   ball.throwTime
                 }ms, from ${ball.fromLeft ? 'left' : 'right'}`,
               );
-              // Record throw history (on landing for consistency with throw event)
+              // Record throw history (on landing, recording the throw time)
               setThrowHistory((prev) => [
                 ...prev,
                 {
@@ -209,23 +209,17 @@ export default function SiteswapAnimation() {
               ]);
             }
 
-            console.log(timeElapsed <= now - adjustedDuration / 2);
-            console.log(timeElapsed);
-            console.log(ball.throwTime);
-            console.log(now - adjustedDuration / 2);
-            console.log(adjustedDuration / 2);
-            console.log('-------------------------');
             // Check if the ball should be thrown (when its scheduled time is reached)
             if (
               !ball.inAir &&
               timeElapsed >= 0 &&
-              timeElapsed <= now - adjustedDuration / 2
+              timeElapsed <= adjustedDuration / 2
             ) {
               ball.inAir = true; // Mark ball as in air
-              ball.throwTime = now; // Throw now
+              ball.throwTime = elapsedTime; // Update throw time to current elapsed time
               // Log throw event
               console.log(
-                `Ball ${ball.id} thrown at ${now}ms, from ${
+                `Ball ${ball.id} thrown at ${elapsedTime}ms, from ${
                   ball.fromLeft ? 'left' : 'right'
                 }, value: ${ball.currentThrow}`,
               );
@@ -255,7 +249,7 @@ export default function SiteswapAnimation() {
       if (timerRef.current) {
         timerRef.current.stop(); // Stop any existing timer
       }
-      timerRef.current = d3.timer(tick); // Start new timer
+      timerRef.current = d3.timer(tick); // Start new timer with elapsed time
     }
 
     // Draw static hand rectangles
@@ -369,18 +363,7 @@ export default function SiteswapAnimation() {
           )}
         </div>
         {/* Animation control inputs */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'space-between',
-            alignContent: 'end',
-            gap: '10px',
-            height: 100,
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <label>
             Dwell Min (ms):
             <input
@@ -460,53 +443,53 @@ export default function SiteswapAnimation() {
           {/* Display throw count and time */}
           <div>Throw Count: {throwCount}</div>
           <div>Throw Time: {throwTime} ms</div>
-        </div>
-        {/* Throw History Visualization */}
-        <div
-          style={{ marginTop: '20px', maxHeight: '200px', overflowY: 'auto' }}
-        >
-          <h3>Throw History</h3>
-          <table style={{ borderCollapse: 'collapse', width: '300px' }}>
-            <thead>
-              <tr>
-                <th style={{ border: '1px solid #ccc', padding: '5px' }}>
-                  Ball ID
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '5px' }}>
-                  Time (ms)
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '5px' }}>
-                  Hand
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '5px' }}>
-                  Value
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {throwHistory.slice(-10).map(
-                (
-                  entry,
-                  index, // Show last 10 throws
-                ) => (
-                  <tr key={index}>
-                    <td style={{ border: '1px solid #ccc', padding: '5px' }}>
-                      {entry.id}
-                    </td>
-                    <td style={{ border: '1px solid #ccc', padding: '5px' }}>
-                      {entry.throwTime - (startTimeRef.current || 0)}
-                    </td>
-                    <td style={{ border: '1px solid #ccc', padding: '5px' }}>
-                      {entry.fromLeft ? 'Left' : 'Right'}
-                    </td>
-                    <td style={{ border: '1px solid #ccc', padding: '5px' }}>
-                      {entry.value}
-                    </td>
-                  </tr>
-                ),
-              )}
-            </tbody>
-          </table>
+          {/* Throw History Visualization */}
+          <div
+            style={{ marginTop: '20px', maxHeight: '200px', overflowY: 'auto' }}
+          >
+            <h3>Throw History</h3>
+            <table style={{ borderCollapse: 'collapse', width: '300px' }}>
+              <thead>
+                <tr>
+                  <th style={{ border: '1px solid #ccc', padding: '5px' }}>
+                    Ball ID
+                  </th>
+                  <th style={{ border: '1px solid #ccc', padding: '5px' }}>
+                    Time (ms)
+                  </th>
+                  <th style={{ border: '1px solid #ccc', padding: '5px' }}>
+                    Hand
+                  </th>
+                  <th style={{ border: '1px solid #ccc', padding: '5px' }}>
+                    Value
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {throwHistory.slice(-10).map(
+                  (
+                    entry,
+                    index, // Show last 10 throws
+                  ) => (
+                    <tr key={index}>
+                      <td style={{ border: '1px solid #ccc', padding: '5px' }}>
+                        {entry.id}
+                      </td>
+                      <td style={{ border: '1px solid #ccc', padding: '5px' }}>
+                        {entry.throwTime}
+                      </td>
+                      <td style={{ border: '1px solid #ccc', padding: '5px' }}>
+                        {entry.fromLeft ? 'Left' : 'Right'}
+                      </td>
+                      <td style={{ border: '1px solid #ccc', padding: '5px' }}>
+                        {entry.value}
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

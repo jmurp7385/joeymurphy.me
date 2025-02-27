@@ -182,15 +182,17 @@ export default function SiteswapAnimation() {
               ball.inAir = false; // Mark ball as landed
               ball.fromLeft = isEven ? ball.fromLeft : !ball.fromLeft; // Switch hands for odd throws
               ball.throwIndex = (ball.throwIndex + 1) % patternLength; // Move to next siteswap value
-              ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value
+              ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value const dwellTime = Math.min(
+
               const dwellTime = Math.min(
                 Math.max(dwellMin, beatDuration / 2),
                 dwellMax,
               ); // Clamp dwell to half beat
-              // Schedule next throw to wrap around the cycle smoothly
+              //               // Schedule next throw to align with the stagger in the next cycle
+              const cyclesCompleted = Math.floor(elapsedTime / cycleDuration);
               ball.throwTime =
-                ball.stagger +
-                Math.floor(elapsedTime / cycleDuration + 1) * cycleDuration;
+                (cyclesCompleted + 1) * cycleDuration + ball.stagger;
+              // dwellTime;
               ball.x = ball.fromLeft ? leftHandX : rightHandX; // Move to landing hand
               ball.y = handY; // Reset to hand height
               setThrowCount((prev) => prev + 1); // Increment throw count
@@ -205,7 +207,7 @@ export default function SiteswapAnimation() {
                 ...prev,
                 {
                   id: ball.id,
-                  throwTime: ball.throwTime - dwellTime - adjustedDuration,
+                  throwTime: ball.throwTime - adjustedDuration,
                   fromLeft: !ball.fromLeft,
                   value: ball.currentThrow,
                 },
@@ -216,7 +218,7 @@ export default function SiteswapAnimation() {
             if (
               !ball.inAir &&
               timeElapsed >= 0 &&
-              timeElapsed < adjustedDuration / 2
+              timeElapsed <= beatDuration / 2
             ) {
               ball.inAir = true; // Mark ball as in air
               ball.throwTime = elapsedTime; // Update throw time to current elapsed time
@@ -315,12 +317,7 @@ export default function SiteswapAnimation() {
         }}
       >
         {/* Input and Pause/Play controls */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '10px',
-          }}
-        >
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input
             style={{ textAlign: 'center', width: '100px' }}
             type='text'

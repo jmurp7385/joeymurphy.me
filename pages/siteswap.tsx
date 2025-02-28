@@ -5,12 +5,11 @@ import styles from '../styles/Home.module.css';
 import { NextSeo } from 'next-seo';
 import Footer from '../components/Footer';
 import SiteswapAnimation from '../components/juggling/SiteswapAnimation';
-import SiteswapSpaceTimeGraph from '../components/juggling/SiteswapSpaceTimegGraph';
 
 const SEO = {
-  title: 'Joey Murphy',
-  description: 'Homepage of Joey Murphy',
-  url: 'https://joeymurphy.me',
+  title: 'Siteswap',
+  description: 'Animate juggling siteswaps',
+  url: 'https://joeymurphy.me/siteswap',
 };
 
 export default function Home() {
@@ -29,7 +28,6 @@ export default function Home() {
         }}
       />
       <main className={styles.main}>
-        {/* <SiteswapSpaceTimeGraph /> */}
         <SiteswapAnimation />
       </main>
       <Footer />

@@ -1,20 +1,16 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
-import react from 'eslint-plugin-react';
-import globals from 'globals';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
+  // import.meta.dirname is available after Node.js v20.11.0
+  baseDirectory: import.meta.dirname,
   recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
 });
-export default [
-  ...compat.extends('next/core-web-vitals'),
+
+const eslintConfig = [
   ...compat.config({
-    extends: ['eslint:recommended', 'next'],
+    extends: ['eslint:recommended', 'next/typescript'],
   }),
 ];
+
+export default eslintConfig;

@@ -1,7 +1,3 @@
-import styles from '../../styles/ReadingLists.module.css';
-import Footer from '../../components/Footer';
-import commonStyles from '../../styles/common.module.css';
-import Breadcrumbs, { tranformLabelHuman } from '../../components/Breadcrumbs';
 import { Book, ReadingListPage } from '../../components/ReadingListPage';
 
 const bookList: Book[] = [

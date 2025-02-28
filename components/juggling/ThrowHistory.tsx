@@ -2,8 +2,8 @@ import { Ball } from './SiteswapAnimation';
 
 /* Throw History Visualization */
 export function ThrowHistory(props: { history: Ball[]; limit?: number }) {
-  const { history, limit = -10 } = props;
-  const limitedHistory = history.slice(limit).reverse(); // Show last 'limit' throws (default -10 for last 10)
+  const { history, limit = 10 } = props;
+  const limitedHistory = history.slice(0, limit); // Show last 'limit' throws (default -10 for last 10)
 
   return (
     <div style={{ marginTop: '20px', maxWidth: '600px', overflowX: 'auto' }}>

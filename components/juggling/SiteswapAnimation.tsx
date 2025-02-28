@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { ThrowHistory } from './ThrowHistory';
 
 // Define default values for animation parameters to ensure consistent initialization
 const defaults = {
+  sitswap: [3], // Default siteswap pattern
   dwellMin: 200, // Minimum dwell time in ms (realistic hand hold time)
   dwellMax: 500, // Maximum dwell time in ms (allows flexibility but keeps rhythm)
-  speedLimit: 1500, // Maximum throw duration in ms, allows higher throws within SVG
+  speedLimit: 1000, // Maximum throw duration in ms, allows higher throws within SVG
   speedMultiplier: 1, // Default multiplier for throw speed (1 = normal speed)
   throwLimit: 0, // Default to infinite throws for continuous animation
 };
 
 // Interface for a ball object in the juggling simulation
-interface Ball {
+export interface Ball {
   id: number; // Unique identifier for the ball
   x: number; // Current X-position in SVG
   y: number; // Current Y-position in SVG
@@ -23,17 +25,20 @@ interface Ball {
   stagger: number; // Initial stagger offset (ms) from animation start
 }
 
+// Interface for an entry in the throw history (using Ball type as per original code)
+interface ThrowHistoryEntry extends Ball {}
+
 /**
  * SiteswapAnimation Component
  * Renders an animated juggling pattern based on a siteswap sequence using D3.js.
- * Normalizes time calculations, ensures smooth looping with type safety, logging, and history visualization.
+ * Ensures one throw per cycle, smooth looping, with type safety, logging, and history visualization.
  */
 export default function SiteswapAnimation() {
   // Reference to the SVG element for D3 manipulation
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // State for the siteswap pattern (array of numbers), e.g., [4] for a 4-ball fountain
-  const [siteswap, setSiteswap] = useState<number[]>([4]);
+  // State for the siteswap pattern (array of numbers), e.g., [3] for a 3-ball cascade
+  const [siteswap, setSiteswap] = useState<number[]>(defaults.sitswap);
 
   // State to toggle animation pause/play
   const [paused, setPaused] = useState<boolean>(false);
@@ -65,7 +70,7 @@ export default function SiteswapAnimation() {
   const [throwTime, setThrowTime] = useState<number>(0);
 
   // State to record throw history
-  const [throwHistory, setThrowHistory] = useState<Ball[]>([]);
+  const [throwHistory, setThrowHistory] = useState<ThrowHistoryEntry[]>([]);
 
   // Reference to the D3 timer for animation updates
   const timerRef = useRef<d3.Timer | null>(null);
@@ -85,7 +90,7 @@ export default function SiteswapAnimation() {
   const loopLength = siteswap.reduce((a, b) => a + b, 0); // Total beats in one cycle
   const beat = 3; // Reference beat value for normalizing throw durations (based on "3")
   const baseThrowDuration = speedLimit * speedMultiplier; // Base throw duration scaled by speed controls
-  const beatDuration = baseThrowDuration / beat; // Duration of one beat in ms (e.g., 500ms with speedLimit=1500)
+  const beatDuration = baseThrowDuration / beat; // Duration of one beat in ms (e.g., 333ms with speedLimit=1000)
   const cycleDuration = loopLength * beatDuration; // Total duration of one loop cycle
   const maxHeight = height; // Maximum height balls can reach within SVG
 
@@ -174,17 +179,22 @@ export default function SiteswapAnimation() {
               ball.inAir = false; // Mark ball as landed
               ball.fromLeft = isEven ? ball.fromLeft : !ball.fromLeft; // Switch hands for odd throws
               ball.throwIndex = (ball.throwIndex + 1) % patternLength; // Move to next siteswap value
-              ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value const dwellTime = Math.min(
-
+              ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value
               const dwellTime = Math.min(
-                Math.max(dwellMin, beatDuration / 2),
+                Math.max(dwellMin, beatDuration),
                 dwellMax,
               ); // Clamp dwell to half beat
-              //               // Schedule next throw to align with the stagger in the next cycle
+              //                       // Schedule next throw at the stagger offset in the next cycle
               const cyclesCompleted = Math.floor(elapsedTime / cycleDuration);
               ball.throwTime =
-                (cyclesCompleted + 1) * cycleDuration + ball.stagger;
-              // dwellTime;
+                cyclesCompleted * cycleDuration + ball.stagger + dwellTime / 3;
+              console.log(
+                ball.throwTime,
+                cyclesCompleted,
+                cycleDuration,
+                ball.stagger,
+                dwellTime,
+              );
               ball.x = ball.fromLeft ? leftHandX : rightHandX; // Move to landing hand
               ball.y = handY; // Reset to hand height
               setThrowCount((prev) => prev + 1); // Increment throw count
@@ -204,7 +214,7 @@ export default function SiteswapAnimation() {
             ) {
               ball.inAir = true; // Mark ball as in air
               ball.throwTime = elapsedTime; // Update throw time to current elapsed time
-              // Record throw history (on landing, recording the throw time)
+              // Record throw history
               setThrowHistory((prev) => [
                 ...prev,
                 {
@@ -292,7 +302,6 @@ export default function SiteswapAnimation() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '20px',
       }}
     >
       {/* SVG canvas for animation */}
@@ -448,120 +457,10 @@ export default function SiteswapAnimation() {
           {/* Display throw count and time */}
           <div>Throw Count: {throwCount}</div>
           <div>Throw Time: {throwTime} ms</div>
+          <div>Throw Speed: {baseThrowDuration}</div>
         </div>
         <ThrowHistory history={throwHistory} limit={numBalls * 2} />
       </div>
-    </div>
-  );
-}
-/* Throw History Visualization */
-function ThrowHistory(props: { history: Ball[]; limit?: number }) {
-  const { history, limit = -10 } = props;
-  const limitedHistory = history.slice(limit); // Show last 'limit' throws (default -10 for last 10)
-
-  return (
-    <div style={{ marginTop: '20px', maxWidth: '600px', overflowX: 'auto' }}>
-      <h3>Throw History</h3>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <tbody>
-          {/* Row for Ball ID */}
-          <tr>
-            <th
-              style={{
-                border: '1px solid #ccc',
-                padding: '5px',
-                textAlign: 'left',
-              }}
-            >
-              Ball ID
-            </th>
-            {limitedHistory.map((entry, index) => (
-              <td
-                key={index}
-                style={{
-                  border: '1px solid #ccc',
-                  padding: '5px',
-                  textAlign: 'center',
-                }}
-              >
-                {entry.id}
-              </td>
-            ))}
-          </tr>
-          {/* Row for Time */}
-          <tr>
-            <th
-              style={{
-                border: '1px solid #ccc',
-                padding: '5px',
-                textAlign: 'left',
-              }}
-            >
-              Time (ms)
-            </th>
-            {limitedHistory.map((entry, index) => (
-              <td
-                key={index}
-                style={{
-                  border: '1px solid #ccc',
-                  padding: '5px',
-                  textAlign: 'center',
-                }}
-              >
-                {entry.throwTime}
-              </td>
-            ))}
-          </tr>
-          {/* Row for Hand */}
-          <tr>
-            <th
-              style={{
-                border: '1px solid #ccc',
-                padding: '5px',
-                textAlign: 'left',
-              }}
-            >
-              Hand
-            </th>
-            {limitedHistory.map((entry, index) => (
-              <td
-                key={index}
-                style={{
-                  border: '1px solid #ccc',
-                  padding: '5px',
-                  textAlign: 'center',
-                }}
-              >
-                {entry.fromLeft ? 'Left' : 'Right'}
-              </td>
-            ))}
-          </tr>
-          {/* Row for Throw Value */}
-          <tr>
-            <th
-              style={{
-                border: '1px solid #ccc',
-                padding: '5px',
-                textAlign: 'left',
-              }}
-            >
-              Throw Value
-            </th>
-            {limitedHistory.map((entry, index) => (
-              <td
-                key={index}
-                style={{
-                  border: '1px solid #ccc',
-                  padding: '5px',
-                  textAlign: 'center',
-                }}
-              >
-                {entry.currentThrow}
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
     </div>
   );
 }

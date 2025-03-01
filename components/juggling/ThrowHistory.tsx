@@ -1,8 +1,8 @@
 import { Ball } from './SiteswapAnimation';
 
 /* Throw History Visualization */
-export function ThrowHistory(props: { history: Ball[]; limit?: number }) {
-  const { history, limit = 10 } = props;
+export function ThrowHistory(properties: { history: Ball[]; limit?: number }) {
+  const { history, limit = 10 } = properties;
   const limitedHistory = history.slice(0, limit); // Show last 'limit' throws (default -10 for last 10)
 
   return (

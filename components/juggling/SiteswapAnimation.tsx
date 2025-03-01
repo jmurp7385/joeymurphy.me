@@ -2,6 +2,99 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { ThrowHistory } from './ThrowHistory';
 
+// function generateNextCycle(siteswapAnalysis: {
+//   period: number;
+//   isValid: boolean;
+//   numBalls: number | null;
+//   siteswap: number[];
+// }) {
+//   const { period, isValid, numBalls } = siteswapAnalysis;
+
+//   // If the siteswap is invalid, return null
+//   if (!isValid || !numBalls) {
+//     return null;
+//   }
+
+//   // Parse the original siteswap string to get throw heights
+//   const throws = siteswapAnalysis.siteswap; // Store siteswap in analysis for convenience
+
+//   // Simulate the first cycle to determine ball landings
+//   const landingQueue = []; // Tracks { beat, throwHeight } for each ball
+//   for (let beat = 0; beat < period; beat++) {
+//     landingQueue.push({
+//       beat: beat + throws[beat], // When the ball lands
+//       throwHeight: throws[beat], // Original throw height
+//     });
+//   }
+
+//   // Sort landings by beat to process in order
+//   landingQueue.sort((a, b) => a.beat - b.beat);
+
+//   // Generate throws for the next cycle (beats: period to 2 * period - 1)
+//   const nextCycleThrows = [];
+//   let throwIndex = 0; // Index into the original throw sequence, cycling with modulo
+
+//   for (let beat = period; beat < 2 * period; beat++) {
+//     // Check if a ball lands at this beat
+//     const landing = landingQueue.find((item) => item.beat === beat);
+//     if (landing) {
+//       // Rethrow the ball with the next throw height from the sequence
+//       const nextThrow = throws[throwIndex % period];
+//       nextCycleThrows.push(nextThrow);
+//       // Add the new landing to the queue
+//       landingQueue.push({
+//         beat: beat + nextThrow,
+//         throwHeight: nextThrow,
+//       });
+//       landingQueue.shift(); // Remove the landed ball (assumes one ball per beat for simplicity)
+//     } else {
+//       // No landing, so no throw (could be a "0" in multiplex, but keep simple for now)
+//       nextCycleThrows.push(0); // Placeholder for no throw
+//     }
+//     throwIndex++;
+//   }
+
+//   return nextCycleThrows;
+// }
+
+// // Modified analyzeSiteswap to include the siteswap string in the output
+// function analyzeSiteswap(siteswap: number[]) {
+//   const period = siteswap.length;
+
+//   const landings = new Set();
+//   for (let i = 0; i < period; i++) {
+//     const landing = (i + siteswap[i]) % period;
+//     if (landings.has(landing)) {
+//       return { siteswap, period, isValid: false, numBalls: null };
+//     }
+//     landings.add(landing);
+//   }
+
+//   const sum = siteswap.reduce((acc, val) => acc + val, 0);
+//   const numBalls = sum / period;
+//   const isValid = Number.isInteger(numBalls);
+//   const beat = numBalls; // Reference beat value for normalizing throw durations (based on "3")
+
+//   return {
+//     siteswap,
+//     period,
+//     isValid,
+//     beat,
+//     numBalls: isValid ? numBalls : null,
+//   };
+// }
+
+// // Test the functions
+// const siteswaps = [[3], [5, 3, 1], [7, 5, 3, 1], [4]];
+// siteswaps.forEach((siteswap) => {
+//   const analysis = analyzeSiteswap(siteswap);
+//   const nextCycle = generateNextCycle(analysis);
+//   console.log(`Siteswap: ${siteswap}`);
+//   console.log(`Analysis:`, analysis);
+//   console.log(`Next Cycle Throws:`, nextCycle);
+//   console.log('---');
+// });
+
 // Define default values for animation parameters to ensure consistent initialization
 const defaults = {
   sitswap: [3], // Default siteswap pattern
@@ -32,7 +125,7 @@ export interface Ball {
  */
 export default function SiteswapAnimation() {
   // Reference to the SVG element for D3 manipulation
-  const svgRef = useRef<SVGSVGElement | null>(null);
+  const svgReference = useRef<SVGSVGElement | null>(null);
 
   // State for the siteswap pattern (array of numbers), e.g., [3] for a 3-ball cascade
   const [siteswap, setSiteswap] = useState<number[]>(defaults.sitswap);
@@ -70,9 +163,9 @@ export default function SiteswapAnimation() {
   const [throwHistory, setThrowHistory] = useState<Ball[]>([]);
 
   // Reference to the D3 timer for animation updates
-  const timerRef = useRef<d3.Timer | null>(null);
+  const timerReference = useRef<d3.Timer | null>(null);
   // Reference to the animation start time for calculating throwTime
-  const startTimeRef = useRef<number>(0);
+  const startTimeReference = useRef<number>(0);
 
   // SVG Dimensions (constant)
   const width = 600; // Width of the SVG canvas in pixels
@@ -80,11 +173,11 @@ export default function SiteswapAnimation() {
 
   // Siteswap pattern properties (depend on state)
   const patternLength = siteswap.length; // Number of digits in the siteswap pattern
-  const numBalls = Math.round(
+  const numberBalls = Math.round(
     siteswap.reduce((a, b) => a + b, 0) / patternLength,
   ); // Average determines number of balls
   const loopLength = siteswap.reduce((a, b) => a + b, 0); // Total beats in one cycle
-  const beat = numBalls; // Reference beat value for normalizing throw durations (based on "3")
+  const beat = numberBalls; // Reference beat value for normalizing throw durations (based on "3")
   const baseThrowDuration = speedLimit * speedMultiplier; // Base throw duration scaled by speed controls
   const beatDuration = baseThrowDuration / beat; // Duration of one beat in ms (e.g., 333ms with speedLimit=1000)
   const cycleDuration = loopLength * beatDuration; // Total duration of one loop cycle
@@ -102,60 +195,69 @@ export default function SiteswapAnimation() {
   // Initialize balls array with staggered timing based on loop length and hand-specific cycles
 
   const [balls, setBallArray] = useState<Ball[]>(
-    Array.from({ length: numBalls }, (_, i) => {
-      const isLeft = i < Math.ceil(numBalls / 2); // More balls in left hand if odd numBalls
+    Array.from({ length: numberBalls }, (_, index) => {
+      const isLeft = index < Math.ceil(numberBalls / 2); // More balls in left hand if odd numBalls
       const handBallCount = isLeft
-        ? Math.ceil(numBalls / 2)
-        : Math.floor(numBalls / 2);
+        ? Math.ceil(numberBalls / 2)
+        : Math.floor(numberBalls / 2);
       // Stagger each ball within its hand's cycle, offset right hand by half beat
       const stagger =
-        (i % handBallCount) * (cycleDuration / handBallCount) +
+        (index % handBallCount) * (cycleDuration / handBallCount) +
         (isLeft ? 0 : beatDuration / 2);
       return {
-        id: i,
+        id: index,
         x: isLeft ? leftHandX : rightHandX,
         y: handY,
         inAir: false,
         throwTime: stagger, // Simulated time from start
         stagger, // Store initial stagger for reference
         fromLeft: isLeft,
-        currentThrow: siteswap[i % patternLength],
-        throwIndex: i % patternLength,
+        currentThrow: siteswap[index % patternLength],
+        throwIndex: index % patternLength,
       };
     }),
   );
 
   useEffect(() => {
     setBallArray(
-      Array.from({ length: numBalls }, (_, i) => {
-        const isLeft = i < Math.ceil(numBalls / 2); // More balls in left hand if odd numBalls
+      Array.from({ length: numberBalls }, (_, index) => {
+        const isLeft = index < Math.ceil(numberBalls / 2); // More balls in left hand if odd numBalls
         const handBallCount = isLeft
-          ? Math.ceil(numBalls / 2)
-          : Math.floor(numBalls / 2);
+          ? Math.ceil(numberBalls / 2)
+          : Math.floor(numberBalls / 2);
         // Stagger each ball within its hand's cycle, offset right hand by half beat
         const stagger =
-          (i % handBallCount) * (cycleDuration / handBallCount) +
+          (index % handBallCount) * (cycleDuration / handBallCount) +
           (isLeft ? 0 : beatDuration / 2);
         return {
-          id: i,
+          id: index,
           x: isLeft ? leftHandX : rightHandX,
           y: handY,
           inAir: false,
           throwTime: stagger, // Simulated time from start
           stagger, // Store initial stagger for reference
           fromLeft: isLeft,
-          currentThrow: siteswap[i % patternLength],
-          throwIndex: i % patternLength,
+          currentThrow: siteswap[index % patternLength],
+          throwIndex: index % patternLength,
         };
       }),
     );
-  }, [numBalls]);
+  }, [
+    numberBalls,
+    beatDuration,
+    cycleDuration,
+    handY,
+    leftHandX,
+    patternLength,
+    rightHandX,
+    siteswap,
+  ]);
 
   // useEffect hook to run animation logic when siteswap or control parameters change
   useEffect(() => {
     // Create and configure the SVG canvas using D3
     const svg = d3
-      .select(svgRef.current)
+      .select(svgReference.current)
       .attr('width', width)
       .attr('height', height)
       .style('background', '#f0f0f0'); // Light gray background for visibility
@@ -172,7 +274,10 @@ export default function SiteswapAnimation() {
         .append('circle')
         .attr('class', 'ball')
         .attr('r', ballRadius)
-        .attr('fill', (d: Ball) => `hsl(${d.id * (360 / numBalls)}, 70%, 50%)`) // Color based on ID
+        .attr(
+          'fill',
+          (d: Ball) => `hsl(${d.id * (360 / numberBalls)}, 70%, 50%)`,
+        ) // Color based on ID
         .attr('cx', (d: Ball) => d.x) // Initial X-position
         .attr('cy', (d: Ball) => d.y); // Initial Y-position
 
@@ -183,8 +288,9 @@ export default function SiteswapAnimation() {
         const elapseTime = timeStep / paceMultiplier;
         if (!paused) {
           // Record the start time for throwTime calculation
-          startTimeRef.current = (startTimeRef.current ?? 0) + elapseTime;
-          setSimulatedTime((prev) => prev + elapseTime); // Increment simulated time
+          startTimeReference.current =
+            (startTimeReference.current ?? 0) + elapseTime;
+          setSimulatedTime((previous) => previous + elapseTime); // Increment simulated time
         }
 
         // Only update positions if not paused and within throw limit
@@ -193,8 +299,8 @@ export default function SiteswapAnimation() {
             'balls',
             balls.map((b) => `${b.id} - ${b.inAir}`),
           );
-          setBallArray((prev) =>
-            prev.map((ball) => {
+          setBallArray((previous) =>
+            previous.map((ball) => {
               // Calculate throw duration based on siteswap value and speed controls
               const baseDuration =
                 (ball.currentThrow / beat) * baseThrowDuration;
@@ -228,7 +334,7 @@ export default function SiteswapAnimation() {
                   (cyclesCompleted + 1) * cycleDuration + ball.stagger;
                 ball.x = ball.fromLeft ? leftHandX : rightHandX; // Move to landing hand
                 ball.y = handY; // Reset to hand height
-                setThrowCount((prev) => prev + 1); // Increment throw count
+                setThrowCount((previous) => previous + 1); // Increment throw count
                 // Log landing event
                 console.log(
                   `Ball ${ball.id} landed at ${time}ms, next throw at ${
@@ -264,12 +370,12 @@ export default function SiteswapAnimation() {
                 ball.inAir = true; // Mark ball as in air
                 ball.throwTime = time + dwellMin; // Update throw time to current simulated time
                 // Record throw history
-                setThrowHistory((prev) => [
+                setThrowHistory((previous) => [
                   {
                     ...ball,
                     throwTime: Math.floor(ball.throwTime),
                   },
-                  ...prev,
+                  ...previous,
                 ]);
                 // Log throw event
                 console.log(
@@ -284,17 +390,14 @@ export default function SiteswapAnimation() {
               // Update ball position if in air and not yet landed
               if (ball.inAir && cycleProgress < 1) {
                 const startX = ball.fromLeft ? leftHandX : rightHandX; // Starting X-position
-                const endX = isEven
-                  ? startX
-                  : ball.fromLeft
-                  ? rightHandX
-                  : leftHandX; // Ending X-position
+                const oppositeHandX = ball.fromLeft ? rightHandX : leftHandX;
+                const endX = isEven ? startX : oppositeHandX; // Ending X-position
                 ball.x = startX + (endX - startX) * cycleProgress; // Linear interpolation for X
                 ball.y =
                   handY -
                   (handY - peakY) * 4 * cycleProgress * (1 - cycleProgress); // Parabolic Y motion
               }
-              if (cycleProgress >= 1.2) startTimeRef.current = 0;
+              if (cycleProgress >= 1.2) startTimeReference.current = 0;
               return ball;
             }),
           );
@@ -304,10 +407,10 @@ export default function SiteswapAnimation() {
         ballSelection.attr('cx', (d: Ball) => d.x).attr('cy', (d: Ball) => d.y);
       };
       // Start or restart the animation timer
-      if (timerRef.current) {
-        timerRef.current.stop(); // Stop any existing timer
+      if (timerReference.current) {
+        timerReference.current.stop(); // Stop any existing timer
       }
-      timerRef.current = d3.timer(tick); // Start new timer with elapsed time
+      timerReference.current = d3.timer(tick); // Start new timer with elapsed time
     }
 
     // Draw static hand rectangles
@@ -329,24 +432,36 @@ export default function SiteswapAnimation() {
 
     // Start the animation
     animate();
-
+    const currentTimerReference = timerReference.current;
+    const currentSvgReference = svgReference.current;
     // Cleanup function to stop timer and clear SVG on unmount or update
     return () => {
-      if (timerRef.current) {
-        timerRef.current.stop();
+      if (currentTimerReference) {
+        currentTimerReference?.stop();
       }
-      d3.select(svgRef.current).selectAll('*').remove();
+      d3.select(currentSvgReference).selectAll('*').remove();
     };
   }, [
     balls,
+    baseThrowDuration,
+    beat,
+    beatDuration,
+    cycleDuration,
+    dwellMax, // Re-run when maximum dwell time changes
+    dwellMin, // Re-run when minimum dwell time changes
+    handY,
+    leftHandX,
+    maxHeight,
+    numberBalls,
+    paceMultiplier, // Re-run when pace multiplier changes
+    patternLength,
+    paused, // Re-run when pause state changes
+    rightHandX,
     simulatedTime,
     siteswap, // Re-run effect when siteswap changes
-    paused, // Re-run when pause state changes
-    dwellMin, // Re-run when minimum dwell time changes
-    dwellMax, // Re-run when maximum dwell time changes
-    paceMultiplier, // Re-run when pace multiplier changes
     speedLimit, // Re-run when speed limit changes
     speedMultiplier, // Re-run when speed multiplier changes
+    throwCount,
     throwLimit, // Re-run when throw limit changes
   ]);
 
@@ -360,7 +475,7 @@ export default function SiteswapAnimation() {
       }}
     >
       {/* SVG canvas for animation */}
-      <svg ref={svgRef}></svg>
+      <svg ref={svgReference}></svg>
       <div
         style={{
           marginTop: 24,
@@ -378,10 +493,9 @@ export default function SiteswapAnimation() {
             value={siteswap.join('')}
             onChange={(event) => {
               const { value } = event.target;
-              const newSiteswap = value
-                .split('')
+              const newSiteswap = [...value]
                 .map(Number)
-                .filter((n: number) => !isNaN(n) && n > 0);
+                .filter((n: number) => !Number.isNaN(n) && n > 0);
               if (newSiteswap.length > 0) {
                 setSiteswap(newSiteswap); // Update siteswap pattern
                 setThrowCount(0); // Reset throw count
@@ -392,10 +506,10 @@ export default function SiteswapAnimation() {
           />
           <button
             onClick={() => {
-              if (timerRef.current) {
-                timerRef.current.stop(); // Stop timer on pause toggle
+              if (timerReference.current) {
+                timerReference.current.stop(); // Stop timer on pause toggle
               }
-              setPaused((prev) => !prev); // Toggle pause state
+              setPaused((previous) => !previous); // Toggle pause state
             }}
           >
             {paused ? 'Play' : 'Pause'}{' '}
@@ -449,10 +563,15 @@ export default function SiteswapAnimation() {
               value={dwellMin}
               min='50'
               max={dwellMax}
-              onChange={(e) => setDwellMin(parseInt(e.target.value))} // Update dwellMin
-              onBlur={(e) =>
+              onChange={(event) =>
+                setDwellMin(Number.parseInt(event.target.value))
+              } // Update dwellMin
+              onBlur={(event) =>
                 setDwellMin(
-                  Math.max(defaults.dwellMin, parseInt(e.target.value)),
+                  Math.max(
+                    defaults.dwellMin,
+                    Number.parseInt(event.target.value),
+                  ),
                 )
               } // Enforce minimum
               style={{ width: '60px', marginLeft: '5px' }}
@@ -465,9 +584,12 @@ export default function SiteswapAnimation() {
               value={dwellMax}
               min={dwellMin}
               max='1000'
-              onChange={(e) =>
+              onChange={(event) =>
                 setDwellMax(
-                  Math.min(defaults.dwellMax, parseInt(e.target.value)),
+                  Math.min(
+                    defaults.dwellMax,
+                    Number.parseInt(event.target.value),
+                  ),
                 )
               } // Update dwellMax with cap
               style={{ width: '60px', marginLeft: '5px' }}
@@ -481,7 +603,9 @@ export default function SiteswapAnimation() {
               value={paceMultiplier}
               min='0.1'
               max='5'
-              onChange={(e) => setPaceMultiplier(parseFloat(e.target.value))} // Update paceMultiplier
+              onChange={(event) =>
+                setPaceMultiplier(Number.parseFloat(event.target.value))
+              } // Update paceMultiplier
               style={{ width: '60px', marginLeft: '5px' }}
             />
           </label>
@@ -492,7 +616,9 @@ export default function SiteswapAnimation() {
               value={speedLimit}
               min='500'
               max='5000'
-              onChange={(e) => setSpeedLimit(parseInt(e.target.value))} // Update speedLimit
+              onChange={(event) =>
+                setSpeedLimit(Number.parseInt(event.target.value))
+              } // Update speedLimit
               style={{ width: '60px', marginLeft: '5px' }}
             />
           </label>
@@ -504,7 +630,9 @@ export default function SiteswapAnimation() {
               value={speedMultiplier}
               min='0.1'
               max='5'
-              onChange={(e) => setSpeedMultiplier(parseFloat(e.target.value))} // Update speedMultiplier
+              onChange={(event) =>
+                setSpeedMultiplier(Number.parseFloat(event.target.value))
+              } // Update speedMultiplier
               style={{ width: '60px', marginLeft: '5px' }}
             />
           </label>
@@ -514,7 +642,9 @@ export default function SiteswapAnimation() {
               type='number'
               value={throwLimit}
               min='0'
-              onChange={(e) => setThrowLimit(parseInt(e.target.value))} // Update throwLimit
+              onChange={(event) =>
+                setThrowLimit(Number.parseInt(event.target.value))
+              } // Update throwLimit
               style={{ width: '60px', marginLeft: '5px' }}
             />
           </label>
@@ -523,7 +653,7 @@ export default function SiteswapAnimation() {
           <div>Throw Time: {simulatedTime} ms</div>
           <div>Throw Speed: {baseThrowDuration}</div>
         </div>
-        <ThrowHistory history={throwHistory} limit={numBalls * 3} />
+        <ThrowHistory history={throwHistory} limit={numberBalls * 3} />
       </div>
     </div>
   );

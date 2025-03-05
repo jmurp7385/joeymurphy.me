@@ -1,103 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { ThrowHistory } from './ThrowHistory';
-
-// function generateNextCycle(siteswapAnalysis: {
-//   period: number;
-//   isValid: boolean;
-//   numBalls: number | null;
-//   siteswap: number[];
-// }) {
-//   const { period, isValid, numBalls } = siteswapAnalysis;
-
-//   // If the siteswap is invalid, return null
-//   if (!isValid || !numBalls) {
-//     return null;
-//   }
-
-//   // Parse the original siteswap string to get throw heights
-//   const throws = siteswapAnalysis.siteswap; // Store siteswap in analysis for convenience
-
-//   // Simulate the first cycle to determine ball landings
-//   const landingQueue = []; // Tracks { beat, throwHeight } for each ball
-//   for (let beat = 0; beat < period; beat++) {
-//     landingQueue.push({
-//       beat: beat + throws[beat], // When the ball lands
-//       throwHeight: throws[beat], // Original throw height
-//     });
-//   }
-
-//   // Sort landings by beat to process in order
-//   landingQueue.sort((a, b) => a.beat - b.beat);
-
-//   // Generate throws for the next cycle (beats: period to 2 * period - 1)
-//   const nextCycleThrows = [];
-//   let throwIndex = 0; // Index into the original throw sequence, cycling with modulo
-
-//   for (let beat = period; beat < 2 * period; beat++) {
-//     // Check if a ball lands at this beat
-//     const landing = landingQueue.find((item) => item.beat === beat);
-//     if (landing) {
-//       // Rethrow the ball with the next throw height from the sequence
-//       const nextThrow = throws[throwIndex % period];
-//       nextCycleThrows.push(nextThrow);
-//       // Add the new landing to the queue
-//       landingQueue.push({
-//         beat: beat + nextThrow,
-//         throwHeight: nextThrow,
-//       });
-//       landingQueue.shift(); // Remove the landed ball (assumes one ball per beat for simplicity)
-//     } else {
-//       // No landing, so no throw (could be a "0" in multiplex, but keep simple for now)
-//       nextCycleThrows.push(0); // Placeholder for no throw
-//     }
-//     throwIndex++;
-//   }
-
-//   return nextCycleThrows;
-// }
-
-// // Modified analyzeSiteswap to include the siteswap string in the output
-// function analyzeSiteswap(siteswap: number[]) {
-//   const period = siteswap.length;
-
-//   const landings = new Set();
-//   for (let i = 0; i < period; i++) {
-//     const landing = (i + siteswap[i]) % period;
-//     if (landings.has(landing)) {
-//       return { siteswap, period, isValid: false, numBalls: null };
-//     }
-//     landings.add(landing);
-//   }
-
-//   const sum = siteswap.reduce((acc, val) => acc + val, 0);
-//   const numBalls = sum / period;
-//   const isValid = Number.isInteger(numBalls);
-//   const beat = numBalls; // Reference beat value for normalizing throw durations (based on "3")
-
-//   return {
-//     siteswap,
-//     period,
-//     isValid,
-//     beat,
-//     numBalls: isValid ? numBalls : null,
-//   };
-// }
-
-// // Test the functions
-// const siteswaps = [[3], [5, 3, 1], [7, 5, 3, 1], [4]];
-// siteswaps.forEach((siteswap) => {
-//   const analysis = analyzeSiteswap(siteswap);
-//   const nextCycle = generateNextCycle(analysis);
-//   console.log(`Siteswap: ${siteswap}`);
-//   console.log(`Analysis:`, analysis);
-//   console.log(`Next Cycle Throws:`, nextCycle);
-//   console.log('---');
-// });
+import { classifySiteswap } from './helpers';
 
 // Define default values for animation parameters to ensure consistent initialization
 const defaults = {
-  sitswap: [3], // Default siteswap pattern
+  sitswap: [5, 1], // Default siteswap pattern
   dwellMin: 200, // Minimum dwell time in ms (realistic hand hold time)
   dwellMax: 500, // Maximum dwell time in ms (allows flexibility but keeps rhythm)
   speedLimit: 1000, // Maximum throw duration in ms, allows higher throws within SVG
@@ -173,9 +81,8 @@ export default function SiteswapAnimation() {
 
   // Siteswap pattern properties (depend on state)
   const patternLength = siteswap.length; // Number of digits in the siteswap pattern
-  const numberBalls = Math.round(
-    siteswap.reduce((a, b) => a + b, 0) / patternLength,
-  ); // Average determines number of balls
+  const { numberBalls, type } = classifySiteswap(siteswap.join('')); // Average determines number of balls
+  const isShower = type === 'shower';
   const loopLength = siteswap.reduce((a, b) => a + b, 0); // Total beats in one cycle
   const beat = numberBalls; // Reference beat value for normalizing throw durations (based on "3")
   const baseThrowDuration = speedLimit * speedMultiplier; // Base throw duration scaled by speed controls
@@ -238,10 +145,46 @@ export default function SiteswapAnimation() {
           stagger, // Store initial stagger for reference
           fromLeft: isLeft,
           currentThrow: siteswap[index % patternLength],
-          throwIndex: index % patternLength,
+          throwIndex: isShower ? (isLeft ? 0 : 1) : index % patternLength,
         };
       }),
     );
+    // setBallArray([
+    //   {
+    //     id: 0,
+    //     x: leftHandX,
+    //     y: handY,
+    //     inAir: false,
+    //     throwTime: 0, // Simulated time from start
+    //     stagger: 0, // Store initial stagger for reference
+    //     fromLeft: true,
+    //     currentThrow: 5,
+    //     throwIndex: 0 % patternLength,
+    //   },
+    //   {
+    //     id: 1,
+    //     x: leftHandX,
+    //     y: handY,
+    //     inAir: false,
+    //     throwTime: 500, // Simulated time from start
+    //     stagger: 500, // Store initial stagger for reference
+    //     fromLeft: true,
+    //     currentThrow: 5,
+    //     throwIndex: 1 % patternLength,
+    //   },
+
+    //   {
+    //     id: 2,
+    //     x: rightHandX,
+    //     y: handY,
+    //     inAir: false,
+    //     throwTime: 1000, // Simulated time from start
+    //     stagger: 1000, // Store initial stagger for reference
+    //     fromLeft: false,
+    //     currentThrow: 1,
+    //     throwIndex: 3 % patternLength,
+    //   },
+    // ]);
   }, [
     numberBalls,
     beatDuration,
@@ -295,10 +238,6 @@ export default function SiteswapAnimation() {
 
         // Only update positions if not paused and within throw limit
         if (!paused && (throwLimit === 0 || throwCount < throwLimit)) {
-          console.log(
-            'balls',
-            balls.map((b) => `${b.id} - ${b.inAir}`),
-          );
           setBallArray((previous) =>
             previous.map((ball) => {
               // Calculate throw duration based on siteswap value and speed controls
@@ -321,7 +260,11 @@ export default function SiteswapAnimation() {
               if (shouldLand) {
                 ball.inAir = false; // Mark ball as landed
                 ball.fromLeft = isEven ? ball.fromLeft : !ball.fromLeft; // Switch hands for odd throws
-                ball.throwIndex = (ball.throwIndex + 1) % patternLength; // Move to next siteswap value
+                ball.throwIndex = isShower
+                  ? ball.fromLeft
+                    ? 0
+                    : 1
+                  : (ball.throwIndex + 1) % patternLength; // Move to next siteswap value
                 ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value
                 // const dwellTime = Math.min(
                 //   Math.max(dwellMin, beatDuration),
@@ -355,6 +298,7 @@ export default function SiteswapAnimation() {
                 shouldLand,
                 shouldThrow,
                 inAir: ball.inAir,
+                throwIndex: ball.throwIndex,
                 beatDuration,
                 throwTime: ball.throwTime,
                 timeElapsed,

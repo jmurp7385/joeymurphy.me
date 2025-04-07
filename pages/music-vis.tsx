@@ -8,7 +8,7 @@ export default function MusicVisualizer() {
   const svgRef = useRef<SVGSVGElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 

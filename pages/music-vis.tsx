@@ -95,7 +95,10 @@ export default function MusicVisualizer() {
         console.log('Audio ended');
       };
       audio.onerror = (ev) => {
-        setError('Error loading audio file: ' + (ev.type || 'Unknown error'));
+        setError(
+          'Error loading audio file: ' +
+            (ev instanceof Event ? ev.type : ev ?? 'Unknown error'),
+        );
         console.error('Audio load error:', ev);
       };
       audio.oncanplay = () => console.log('Audio can play');
@@ -117,6 +120,10 @@ export default function MusicVisualizer() {
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     console.log('Visualization started, buffer length:', bufferLength);
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
 
     const draw = () => {
       if (!analyser || !svgRef.current) return;
@@ -141,6 +148,8 @@ export default function MusicVisualizer() {
         case 'circles':
           drawCircles(svg, bufferLength, dataArray);
           break;
+        default:
+          console.error('Unknown visualization type:', visualizationType);
       }
     };
 
@@ -148,7 +157,7 @@ export default function MusicVisualizer() {
   };
 
   const drawBars = (
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+    svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
     bufferLength: number,
     dataArray: Uint8Array,
   ) => {
@@ -167,14 +176,14 @@ export default function MusicVisualizer() {
   };
 
   const drawWaves = (
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+    svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
     bufferLength: number,
     dataArray: Uint8Array,
   ) => {
     const line = d3
       .line<number>()
       .x((_, i) => (i / (bufferLength - 1)) * dimensions.width)
-      .y((d) => dimensions.height - (d / 255) * dimensions.height)
+      .y((d) => dimensions.height / 2 - (d / 255) * (dimensions.height / 2))
       .curve(d3.curveMonotoneX);
 
     svg
@@ -187,7 +196,7 @@ export default function MusicVisualizer() {
   };
 
   const drawCircles = (
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+    svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
     bufferLength: number,
     dataArray: Uint8Array,
   ) => {
@@ -195,20 +204,25 @@ export default function MusicVisualizer() {
     const centerY = dimensions.height / 2;
     const maxRadius = Math.min(dimensions.width, dimensions.height) / 4;
 
+    const circleData = dataArray.slice(0, 20); // Limit to 20 circles
     svg
       .selectAll('circle')
-      .data(dataArray.slice(0, 20))
+      .data(circleData)
       .enter()
       .append('circle')
       .attr('cx', centerX)
       .attr('cy', centerY)
       .attr('r', (d) => (d / 255) * maxRadius)
       .attr('fill', 'none')
-      .attr('stroke', (_, i) => `hsl(${(i * 360) / 20}, 100%, 50%)`)
+      .attr(
+        'stroke',
+        (_, i) => `hsl(${(i * 360) / circleData.length}, 100%, 50%)`,
+      )
       .attr('stroke-width', 2)
       .attr(
         'transform',
-        (_, i) => `rotate(${(i / 20) * 360}, ${centerX}, ${centerY})`,
+        (_, i) =>
+          `rotate(${(i / circleData.length) * 360}, ${centerX}, ${centerY})`,
       );
   };
 
@@ -279,6 +293,14 @@ export default function MusicVisualizer() {
     }
   };
 
+  // Restart visualization when fftSize or visualizationType changes
+  useEffect(() => {
+    if (analyserRef.current && audioContextRef.current && isPlaying) {
+      analyserRef.current.fftSize = fftSize;
+      startVisualization();
+    }
+  }, [fftSize, visualizationType, isPlaying]);
+
   useEffect(() => {
     return () => {
       if (animationFrameRef.current)
@@ -320,11 +342,7 @@ export default function MusicVisualizer() {
 
         <select
           value={fftSize}
-          onChange={(e) => {
-            const newFftSize = Number(e.target.value);
-            setFftSize(newFftSize);
-            if (analyserRef.current) analyserRef.current.fftSize = newFftSize;
-          }}
+          onChange={(e) => setFftSize(Number(e.target.value))}
         >
           <option value={256}>Low Detail (256)</option>
           <option value={512}>Medium Detail (512)</option>

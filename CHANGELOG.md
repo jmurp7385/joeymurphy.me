@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0
+
+- Music Visualizer
+
 ## 0.5.0
 
 - reading list for 2025 started

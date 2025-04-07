@@ -1,5 +1,9 @@
 # Changelog
 
+## TODO - x.x.x
+
+- mu miror in combination with music visualizer
+
 ## 0.6.0
 
 - Music Visualizer

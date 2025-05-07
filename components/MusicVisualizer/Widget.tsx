@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { CSSProperties, ReactNode } from 'react';
 import styles from '../../styles/Widget.module.css';
 import { shouldShowWidget, WidgetType } from '../../utilities';
 
@@ -7,14 +7,18 @@ interface WidgetProps {
   activeWidget?: WidgetType[];
   children: ReactNode;
   backgroundColor?: string;
+  style?: CSSProperties;
 }
 export function Widget(props: WidgetProps) {
-  const { widget, activeWidget, children, backgroundColor } = props;
+  const { widget, activeWidget, children, style, backgroundColor } = props;
 
   return shouldShowWidget(widget, activeWidget) ? (
     <div
       className={[styles.controlContainer, styles[widget]].join(' ')}
-      style={{ background: backgroundColor }}
+      style={{
+        background: backgroundColor,
+        ...style,
+      }}
     >
       {children}
     </div>

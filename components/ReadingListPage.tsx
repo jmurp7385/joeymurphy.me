@@ -1,6 +1,6 @@
-import Breadcrumbs, { tranformLabelHuman } from './Breadcrumbs';
 import styles from '../styles/ReadingLists.module.css';
 import commonStyles from '../styles/common.module.css';
+import Breadcrumbs, { transformLabelHuman } from './Breadcrumbs';
 import Footer from './Footer';
 
 export interface Book {
@@ -22,7 +22,7 @@ export function ReadingListPage(props: ReadingListProps) {
     <main className={styles.main}>
       <Breadcrumbs
         containerStyle={{ alignSelf: 'flex-start', paddingBottom: '2.5rem' }}
-        transformLabel={tranformLabelHuman}
+        transformLabel={transformLabelHuman}
       />
 
       <h1 className={styles.title}>{title}</h1>

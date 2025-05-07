@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import React, { CSSProperties, ReactNode, useEffect, useState } from 'react';
 import styles from './Breadcrumbs.module.css';
 
 /**
@@ -8,7 +8,7 @@ import styles from './Breadcrumbs.module.css';
  * @param str
  * @returns
  */
-export function tranformLabelHuman(str: string): string {
+export function transformLabelHuman(str: string): string {
   return str
     .replace('-', ' ')
     .replace(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
@@ -95,31 +95,31 @@ export interface BreadcrumbsProps {
   replaceCharacterList?: Array<CharacterMap> | undefined;
 
   /** A transformation function that allows to customize the label strings. Receives the label string and has to return a string or React Component */
-  transformLabel?: ((title: string) => React.ReactNode) | undefined;
+  transformLabel?: ((title: string) => ReactNode);
 
   /** Array containing all the indexes of the path that should be omitted and not be rendered as labels. If we have a path like '/home/category/1' then you might want to pass '[2]' here, which omits the breadcrumb label '1'. Indexes start with 0. Example: [2] Default: undefined */
-  omitIndexList?: Array<number> | undefined;
+  omitIndexList?: Array<number>;
 
   /** An inline style object for the outer container */
-  containerStyle?: any | null;
+  containerStyle?: CSSProperties;
 
   /** Classes to be used for the outer container. Won't be used if useDefaultStyle is true */
   containerClassName?: string;
 
   /** An inline style object for the breadcrumb list */
-  listStyle?: any | null;
+  listStyle?: CSSProperties;
 
   /** Classes to be used for the breadcrumb list */
   listClassName?: string;
 
   /** An inline style object for the inactive breadcrumb list item */
-  inactiveItemStyle?: any | null;
+  inactiveItemStyle?: CSSProperties;
 
   /** Classes to be used for the inactive breadcrumb list item */
   inactiveItemClassName?: string;
 
   /** An inline style object for the active breadcrumb list item */
-  activeItemStyle?: any | null;
+  activeItemStyle?: CSSProperties ;
 
   /** Classes to be used for the active breadcrumb list item */
   activeItemClassName?: string;
@@ -133,13 +133,13 @@ const defaultProps: BreadcrumbsProps = {
   replaceCharacterList: [{ from: '-', to: ' ' }],
   transformLabel: undefined,
   omitIndexList: undefined,
-  containerStyle: null,
+  containerStyle: undefined,
   containerClassName: '',
-  listStyle: null,
+  listStyle: undefined,
   listClassName: '',
-  inactiveItemStyle: null,
+  inactiveItemStyle: undefined,
   inactiveItemClassName: '',
-  activeItemStyle: null,
+  activeItemStyle: undefined,
   activeItemClassName: '',
 };
 

@@ -7,7 +7,7 @@ import { WidgetType } from '../utilities';
 
 const ALL_WIDGET_TYPES: WidgetType[] = ['playback', 'presets', 'customization'];
 
-type VisualizationType = 'bars' | 'waves' | 'circles';
+type VisualizationType = 'bars' | 'waves' | 'circles' | 'image';
 enum Detail {
   Low = Math.pow(2, 7),
   Medium = Math.pow(2, 8),
@@ -519,7 +519,7 @@ export default function MusicVisualizer() {
 
   return (
     <div className={styles.container}>
-      <h1>Music Visualizer</h1>
+      <h1>Music Visualizer (alpha)</h1>
 
       <div className={styles.widgetContainer}>
         <Widget widget={'widgetPicker'}>

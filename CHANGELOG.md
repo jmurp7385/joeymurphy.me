@@ -6,7 +6,7 @@
 
 ## 0.6.0
 
-- Music Visualizer
+- Music Visualizer (Alpha)
 
 ## 0.5.0
 
@@ -35,4 +35,3 @@
 ## 0.1.0
 
 - Initial landing page with GitHub and Instagram links.
-

@@ -1,0 +1,27 @@
+.controlContainer {
+  margin: 24px 0;
+  padding: 12px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-radius: 8px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.widgetPicker {
+  background: #cccccc;
+}
+
+.playback {
+  background: #056572;
+}
+
+.presets {
+  background: #4e850f;
+}
+
+.customization {
+  background: #944d0b;
+}

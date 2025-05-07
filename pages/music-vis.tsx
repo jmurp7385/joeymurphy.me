@@ -1,7 +1,11 @@
 // pages/index.tsx
 import * as d3 from 'd3';
 import { useEffect, useRef, useState } from 'react';
+import { Widget } from '../components/MusicVisualizer/Widget';
 import styles from '../styles/Visualizer.module.css';
+import { WidgetType } from '../utilities';
+
+const widgetTypes: WidgetType[] = ['playback', 'presets', 'customization'];
 
 type VisualizationType = 'bars' | 'waves' | 'circles';
 enum Detail {
@@ -34,6 +38,8 @@ export default function MusicVisualizer() {
   const [visualizationType, setVisualizationType] =
     useState<VisualizationType>('bars');
   const [detail, setDetail] = useState(Detail.Low);
+  const [selectedSection, setSelectedSection] =
+    useState<WidgetType[]>(widgetTypes);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
@@ -458,11 +464,30 @@ export default function MusicVisualizer() {
     };
   }, [audioElement]);
 
+  function handleSectionClick(section: WidgetType | WidgetType[]) {
+    return () => {
+      setSelectedSection((prev) =>
+        Array.isArray(section)
+          ? section
+          : prev.includes(section)
+          ? prev.filter((s) => s !== section)
+          : [...prev, section],
+      );
+    };
+  }
+
   return (
     <div className={styles.container}>
       <h1>Music Visualizer</h1>
 
-      <div className={[styles.controlContainer, styles.settings].join(' ')}>
+      <Widget widget={'widgetPicker'}>
+        {widgetTypes.map((section) => (
+          <button onClick={handleSectionClick(section)}>{section}</button>
+        ))}
+        <button onClick={handleSectionClick(widgetTypes)}>All</button>
+        <button onClick={handleSectionClick([])}>None</button>
+      </Widget>
+      <Widget widget={'playback'} activeWidget={selectedSection}>
         <button onClick={startMicAudio} disabled={isPlaying || !!audioElement}>
           Use Microphone
         </button>
@@ -500,15 +525,47 @@ export default function MusicVisualizer() {
           })}
         </select>
         <button onClick={resetVisualizer}>Reset</button>
-      </div>
-
-      <div className={[styles.controlContainer, styles.presets].join(' ')}>
+        {audioElement && (
+          <div className={styles.playbackControls}>
+            <button onClick={playAudio} disabled={isPlaying}>
+              Play
+            </button>
+            <button onClick={pauseAudio} disabled={!isPlaying}>
+              Pause
+            </button>
+            <button onClick={stopAudio}>Stop</button>
+            <div className={styles.volumeControl}>
+              <label>Volume: </label>
+              <input
+                type='range'
+                min='0'
+                max='1'
+                step='0.1'
+                value={volume}
+                onChange={handleVolumeChange}
+              />
+            </div>
+            <div className={styles.seekControl}>
+              <input
+                type='range'
+                min='0'
+                max={duration}
+                value={currentTime}
+                onChange={handleSeek}
+              />
+              <span>
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+          </div>
+        )}
+      </Widget>
+      <Widget widget={'presets'} activeWidget={selectedSection}>
         <button onClick={setWideVibrantBars}>Wide Vibrant Bars</button>
         <button onClick={setBoldGreenWave}>Bold Green Wave</button>
         <button onClick={setSpinningKaleidoscope}>Spinning Kaleidoscope</button>
-      </div>
-
-      <div className={[styles.controlContainer, styles.customization].join(' ')}>
+      </Widget>
+      <Widget widget={'customization'} activeWidget={selectedSection}>
         {visualizationType === 'bars' && (
           <div className={styles.customizationItem}>
             <label>Bar Width Multiplier: </label>
@@ -649,42 +706,7 @@ export default function MusicVisualizer() {
             }
           />
         </div>
-      </div>
-
-      {audioElement && (
-        <div className={styles.playbackControls}>
-          <button onClick={playAudio} disabled={isPlaying}>
-            Play
-          </button>
-          <button onClick={pauseAudio} disabled={!isPlaying}>
-            Pause
-          </button>
-          <button onClick={stopAudio}>Stop</button>
-          <div className={styles.volumeControl}>
-            <label>Volume: </label>
-            <input
-              type='range'
-              min='0'
-              max='1'
-              step='0.1'
-              value={volume}
-              onChange={handleVolumeChange}
-            />
-          </div>
-          <div className={styles.seekControl}>
-            <input
-              type='range'
-              min='0'
-              max={duration}
-              value={currentTime}
-              onChange={handleSeek}
-            />
-            <span>
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-          </div>
-        </div>
-      )}
+      </Widget>
 
       {error && <div className={styles.error}>{error}</div>}
 

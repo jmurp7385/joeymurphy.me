@@ -75,3 +75,7 @@
   height: 50vh;
   display: block;
 }
+
+.capitalize {
+  text-transform: capitalize;
+}

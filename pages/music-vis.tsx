@@ -1,11 +1,11 @@
 // pages/index.tsx
 import * as d3 from 'd3';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Widget } from '../components/MusicVisualizer/Widget';
 import styles from '../styles/Visualizer.module.css';
 import { WidgetType } from '../utilities';
 
-const widgetTypes: WidgetType[] = ['playback', 'presets', 'customization'];
+const ALL_WIDGET_TYPES: WidgetType[] = ['playback', 'presets', 'customization'];
 
 type VisualizationType = 'bars' | 'waves' | 'circles';
 enum Detail {
@@ -38,8 +38,8 @@ export default function MusicVisualizer() {
   const [visualizationType, setVisualizationType] =
     useState<VisualizationType>('bars');
   const [detail, setDetail] = useState(Detail.Low);
-  const [selectedSection, setSelectedSection] =
-    useState<WidgetType[]>(widgetTypes);
+  const [activeWidgets, setActiveWidgets] =
+    useState<WidgetType[]>(ALL_WIDGET_TYPES);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
@@ -118,6 +118,7 @@ export default function MusicVisualizer() {
       console.log('File selected:', file.name);
       const audio = new Audio(URL.createObjectURL(file));
       setAudioElement(audio);
+      setActiveWidgets((prev) => [...prev, 'playback']);
 
       audio.onloadedmetadata = () => {
         setDuration(audio.duration);
@@ -142,7 +143,130 @@ export default function MusicVisualizer() {
     }
   };
 
-  const startVisualization = () => {
+  const getColor = useCallback(
+    (index: number, total: number, amplitude: number = 0) => {
+      switch (visualOptions.colorScheme) {
+        case 'rainbow':
+          const hue = ((index / total) * 360) % 360;
+          // Adjust lightness based on amplitude (0-255 mapped to 60-80%)
+          const lightness = 40 + ((index % total) % 40);
+          return `hsl(${hue}, ${visualOptions.saturation}%, ${lightness}%)`;
+        case 'monochrome':
+          // Green hue, vary lightness with amplitude
+          return `hsl(120, ${visualOptions.saturation}%, ${
+            20 + (amplitude / 255) * 60
+          }%)`;
+        case 'custom':
+          const colors =
+            visualOptions.customColors.length > 0
+              ? visualOptions.customColors
+              : ['#ffffff'];
+          // Cycle through custom colors, adjust opacity or use as base
+          return colors[index % colors.length];
+        default:
+          return '#ffffff';
+      }
+    },
+    [
+      visualOptions.colorScheme,
+      visualOptions.customColors,
+      visualOptions.saturation,
+    ],
+  );
+
+  const drawBars = useCallback(
+    (
+      svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
+      bufferLength: number,
+      dataArray: Uint8Array,
+    ) => {
+      const barWidth =
+        (dimensions.width / bufferLength) * visualOptions.barWidthMultiplier;
+
+      svg
+        .selectAll('rect')
+        .data(dataArray)
+        .enter()
+        .append('rect')
+        .attr('x', (_, i) => i * barWidth)
+        .attr('width', barWidth - 1)
+        .attr('y', (d) => dimensions.height - (d / 255) * dimensions.height)
+        .attr('height', (d) => (d / 255) * dimensions.height)
+        .attr('fill', (_, i) => getColor(i, bufferLength));
+    },
+    [
+      dimensions.height,
+      dimensions.width,
+      getColor,
+      visualOptions.barWidthMultiplier,
+    ],
+  );
+
+  const drawWaves = useCallback(
+    (
+      svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
+      bufferLength: number,
+      dataArray: Uint8Array,
+    ) => {
+      const xScale = (i: number) => (i / (bufferLength - 1)) * dimensions.width;
+      const yScale = (d: number) =>
+        dimensions.height / 2 - (d / 255) * (dimensions.height / 2);
+
+      // Draw wave as individual line segments
+      svg
+        .selectAll('line')
+        .data(dataArray.slice(0, -1)) // Exclude last point to pair with next
+        .enter()
+        .append('line')
+        .attr('x1', (_, i) => xScale(i))
+        .attr('y1', (d) => yScale(d))
+        .attr('x2', (_, i) => xScale(i + 1))
+        .attr('y2', (_, i) => yScale(dataArray[i + 1]))
+        .attr('stroke', (d, i) => getColor(i, bufferLength, d)) // Color based on amplitude
+        .attr('stroke-width', visualOptions.waveThickness);
+    },
+    [
+      dimensions.height,
+      dimensions.width,
+      getColor,
+      visualOptions.waveThickness,
+    ],
+  );
+
+  const drawCircles = useCallback(
+    (
+      svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
+      dataArray: Uint8Array,
+      rotationAngle: number,
+    ) => {
+      const centerX = dimensions.width / 2;
+      const centerY = dimensions.height / 2;
+      const maxRadius = Math.min(dimensions.width, dimensions.height) / 4;
+
+      const circleData = dataArray.slice(0, visualOptions.circleCount);
+      svg
+        .selectAll('circle')
+        .data(circleData)
+        .enter()
+        .append('circle')
+        .attr('cx', centerX)
+        .attr('cy', centerY)
+        .attr('r', (d) => (d / 255) * maxRadius)
+        .attr('fill', 'none')
+        .attr('stroke', (_, i) => getColor(i, circleData.length))
+        .attr('stroke-width', 2)
+        .attr(
+          'transform',
+          (_, i) =>
+            `rotate(${
+              (i / circleData.length) * 360 + rotationAngle
+            }, ${centerX}, ${centerY})`,
+        );
+    },
+    [dimensions.height, dimensions.width, getColor, visualOptions.circleCount],
+  );
+
+  const startVisualization = useCallback(() => {
     const svg = d3.select(svgRef.current);
     const analyser = analyserRef.current;
     if (!analyser || !svgRef.current) {
@@ -185,7 +309,7 @@ export default function MusicVisualizer() {
           drawWaves(svg, bufferLength, dataArray);
           break;
         case 'circles':
-          drawCircles(svg, bufferLength, dataArray, rotationAngle);
+          drawCircles(svg, dataArray, rotationAngle);
           break;
         default:
           console.error('Unknown visualization type:', visualizationType);
@@ -193,105 +317,15 @@ export default function MusicVisualizer() {
     };
 
     draw();
-  };
-
-  const getColor = (index: number, total: number, amplitude: number = 0) => {
-    switch (visualOptions.colorScheme) {
-      case 'rainbow':
-        const hue = ((index / total) * 360) % 360;
-        // Adjust lightness based on amplitude (0-255 mapped to 60-80%)
-        const lightness = 40 + ((index % total) % 40);
-        return `hsl(${hue}, ${visualOptions.saturation}%, ${lightness}%)`;
-      case 'monochrome':
-        // Green hue, vary lightness with amplitude
-        return `hsl(120, ${visualOptions.saturation}%, ${
-          20 + (amplitude / 255) * 60
-        }%)`;
-      case 'custom':
-        const colors =
-          visualOptions.customColors.length > 0
-            ? visualOptions.customColors
-            : ['#ffffff'];
-        // Cycle through custom colors, adjust opacity or use as base
-        return colors[index % colors.length];
-      default:
-        return '#ffffff';
-    }
-  };
-
-  const drawBars = (
-    svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
-    bufferLength: number,
-    dataArray: Uint8Array,
-  ) => {
-    const barWidth =
-      (dimensions.width / bufferLength) * visualOptions.barWidthMultiplier;
-
-    svg
-      .selectAll('rect')
-      .data(dataArray)
-      .enter()
-      .append('rect')
-      .attr('x', (_, i) => i * barWidth)
-      .attr('width', barWidth - 1)
-      .attr('y', (d) => dimensions.height - (d / 255) * dimensions.height)
-      .attr('height', (d) => (d / 255) * dimensions.height)
-      .attr('fill', (_, i) => getColor(i, bufferLength));
-  };
-
-  const drawWaves = (
-    svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
-    bufferLength: number,
-    dataArray: Uint8Array,
-  ) => {
-    const xScale = (i: number) => (i / (bufferLength - 1)) * dimensions.width;
-    const yScale = (d: number) =>
-      dimensions.height / 2 - (d / 255) * (dimensions.height / 2);
-
-    // Draw wave as individual line segments
-    svg
-      .selectAll('line')
-      .data(dataArray.slice(0, -1)) // Exclude last point to pair with next
-      .enter()
-      .append('line')
-      .attr('x1', (_, i) => xScale(i))
-      .attr('y1', (d) => yScale(d))
-      .attr('x2', (_, i) => xScale(i + 1))
-      .attr('y2', (_, i) => yScale(dataArray[i + 1]))
-      .attr('stroke', (d, i) => getColor(i, bufferLength, d)) // Color based on amplitude
-      .attr('stroke-width', visualOptions.waveThickness);
-  };
-
-  const drawCircles = (
-    svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
-    bufferLength: number,
-    dataArray: Uint8Array,
-    rotationAngle: number,
-  ) => {
-    const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-    const maxRadius = Math.min(dimensions.width, dimensions.height) / 4;
-
-    const circleData = dataArray.slice(0, visualOptions.circleCount);
-    svg
-      .selectAll('circle')
-      .data(circleData)
-      .enter()
-      .append('circle')
-      .attr('cx', centerX)
-      .attr('cy', centerY)
-      .attr('r', (d) => (d / 255) * maxRadius)
-      .attr('fill', 'none')
-      .attr('stroke', (_, i) => getColor(i, circleData.length))
-      .attr('stroke-width', 2)
-      .attr(
-        'transform',
-        (_, i) =>
-          `rotate(${
-            (i / circleData.length) * 360 + rotationAngle
-          }, ${centerX}, ${centerY})`,
-      );
-  };
+  }, [
+    dimensions.height,
+    dimensions.width,
+    drawBars,
+    drawCircles,
+    drawWaves,
+    visualOptions.rotationSpeed,
+    visualizationType,
+  ]);
 
   const playAudio = async () => {
     if (audioElement && !isPlaying) {
@@ -451,7 +485,7 @@ export default function MusicVisualizer() {
       analyserRef.current.fftSize = detail;
       startVisualization();
     }
-  }, [detail, visualizationType, visualOptions, isPlaying]);
+  }, [detail, visualizationType, visualOptions, isPlaying, startVisualization]);
 
   useEffect(() => {
     return () => {
@@ -466,9 +500,11 @@ export default function MusicVisualizer() {
 
   function handleSectionClick(section: WidgetType | WidgetType[]) {
     return () => {
-      setSelectedSection((prev) =>
+      setActiveWidgets((prev) =>
         Array.isArray(section)
-          ? section
+          ? prev === ALL_WIDGET_TYPES && section === ALL_WIDGET_TYPES
+            ? []
+            : section
           : prev.includes(section)
           ? prev.filter((s) => s !== section)
           : [...prev, section],
@@ -481,13 +517,18 @@ export default function MusicVisualizer() {
       <h1>Music Visualizer</h1>
 
       <Widget widget={'widgetPicker'}>
-        {widgetTypes.map((section) => (
-          <button onClick={handleSectionClick(section)}>{section}</button>
+        {ALL_WIDGET_TYPES.map((widget) => (
+          <button
+            className={styles.capitalize}
+            key={widget}
+            onClick={handleSectionClick(widget)}
+          >
+            {widget}
+          </button>
         ))}
-        <button onClick={handleSectionClick(widgetTypes)}>All</button>
-        <button onClick={handleSectionClick([])}>None</button>
+        <button onClick={handleSectionClick(ALL_WIDGET_TYPES)}>all</button>
       </Widget>
-      <Widget widget={'playback'} activeWidget={selectedSection}>
+      <Widget widget={'playback'} activeWidget={activeWidgets}>
         <button onClick={startMicAudio} disabled={isPlaying || !!audioElement}>
           Use Microphone
         </button>
@@ -520,7 +561,10 @@ export default function MusicVisualizer() {
             { detail: Detail.Super, label: 'Super' },
           ].map(({ detail, label }) => {
             return (
-              <option value={detail}>{`${label} Detail (${detail})`}</option>
+              <option
+                key={detail}
+                value={detail}
+              >{`${label} Detail (${detail})`}</option>
             );
           })}
         </select>
@@ -560,12 +604,12 @@ export default function MusicVisualizer() {
           </div>
         )}
       </Widget>
-      <Widget widget={'presets'} activeWidget={selectedSection}>
+      <Widget widget={'presets'} activeWidget={activeWidgets}>
         <button onClick={setWideVibrantBars}>Wide Vibrant Bars</button>
         <button onClick={setBoldGreenWave}>Bold Green Wave</button>
         <button onClick={setSpinningKaleidoscope}>Spinning Kaleidoscope</button>
       </Widget>
-      <Widget widget={'customization'} activeWidget={selectedSection}>
+      <Widget widget={'customization'} activeWidget={activeWidgets}>
         {visualizationType === 'bars' && (
           <div className={styles.customizationItem}>
             <label>Bar Width Multiplier: </label>
@@ -645,7 +689,7 @@ export default function MusicVisualizer() {
             onChange={(e) =>
               setVisualOptions({
                 ...visualOptions,
-                colorScheme: e.target.value as any,
+                colorScheme: e.target.value as VisualOptions['colorScheme'],
               })
             }
           >

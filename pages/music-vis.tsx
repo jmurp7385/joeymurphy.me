@@ -1,7 +1,7 @@
 // pages/index.tsx
-import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import styles from '../styles/Visulizer.module.css';
+import { useEffect, useRef, useState } from 'react';
+import styles from '../styles/Visualizer.module.css';
 
 type VisualizationType = 'bars' | 'waves' | 'circles';
 enum Detail {
@@ -462,7 +462,7 @@ export default function MusicVisualizer() {
     <div className={styles.container}>
       <h1>Music Visualizer</h1>
 
-      <div className={styles.controls}>
+      <div className={[styles.controlContainer, styles.settings].join(' ')}>
         <button onClick={startMicAudio} disabled={isPlaying || !!audioElement}>
           Use Microphone
         </button>
@@ -502,13 +502,13 @@ export default function MusicVisualizer() {
         <button onClick={resetVisualizer}>Reset</button>
       </div>
 
-      <div className={styles.presets}>
+      <div className={[styles.controlContainer, styles.presets].join(' ')}>
         <button onClick={setWideVibrantBars}>Wide Vibrant Bars</button>
         <button onClick={setBoldGreenWave}>Bold Green Wave</button>
         <button onClick={setSpinningKaleidoscope}>Spinning Kaleidoscope</button>
       </div>
 
-      <div className={styles.customization}>
+      <div className={[styles.controlContainer, styles.customization].join(' ')}>
         {visualizationType === 'bars' && (
           <div className={styles.customizationItem}>
             <label>Bar Width Multiplier: </label>

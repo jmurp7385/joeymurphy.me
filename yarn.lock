@@ -787,6 +787,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/p5@npm:^1":
+  version: 1.7.6
+  resolution: "@types/p5@npm:1.7.6"
+  checksum: 10c0/92f53b7666a346a70c144fd72e09d06b9ef54a099098629717d0a70043d2ce96f1e3f49e6d36c7afa7f27ceaa4b833cca50d9d33878d201fce7105658ace0a6e
+  languageName: node
+  linkType: hard
+
 "@types/react-dom@npm:19.1.1":
   version: 19.1.1
   resolution: "@types/react-dom@npm:19.1.1"
@@ -2788,6 +2795,7 @@ __metadata:
     "@iconify/react": "npm:^5.2.1"
     "@types/d3": "npm:^7.4.3"
     "@types/node": "npm:^22.14.0"
+    "@types/p5": "npm:^1"
     "@types/react": "npm:19.1.0"
     "@types/react-dom": "npm:19.1.1"
     "@vercel/analytics": "npm:^1.5.0"
@@ -2797,6 +2805,7 @@ __metadata:
     next: "npm:15.2.4"
     next-seo: "npm:^6.6.0"
     next-transpile-modules: "npm:^10.0.1"
+    p5: "npm:^1.11.3"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
     typescript: "npm:^5.8.2"
@@ -3208,6 +3217,13 @@ __metadata:
   dependencies:
     p-limit: "npm:^3.0.2"
   checksum: 10c0/2290d627ab7903b8b70d11d384fee714b797f6040d9278932754a6860845c4d3190603a0772a663c8cb5a7b21d1b16acb3a6487ebcafa9773094edc3dfe6009a
+  languageName: node
+  linkType: hard
+
+"p5@npm:^1.11.3":
+  version: 1.11.3
+  resolution: "p5@npm:1.11.3"
+  checksum: 10c0/b37bc8107a347ac285dbc470e0feeea4db071e19ef879e1e382a2046d5335ee2e3694e60de665f32e715665c5bf76af1ea63542b5f0d916c4e4ec7fa374499f6
   languageName: node
   linkType: hard
 

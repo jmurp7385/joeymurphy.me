@@ -6,6 +6,25 @@
   box-sizing: border-box; /* Include padding in width */
 }
 
+
+.widgetContainer {
+  width: 100%;
+  max-width: 100%;
+  background: #f0f0f0;
+  box-sizing: border-box; /* Include padding in width */
+  display: flex;
+  flex-direction: row;
+}
+
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 8px;
+  }
+  .widgetContainer {
+      flex-direction: column;
+    }
+  }
+
 .customizationItem {
   display: flex;
   align-items: center;
@@ -76,6 +95,6 @@
   display: block;
 }
 
-.capitalize {
+.widgetButton {
   text-transform: capitalize;
 }

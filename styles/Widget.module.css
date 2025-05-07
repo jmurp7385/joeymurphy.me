@@ -1,13 +1,21 @@
 .controlContainer {
-  margin: 24px 0;
-  padding: 12px;
+  margin: 16px;
+  padding: 16px;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  border-radius: 8px;
+    flex-direction: column;
+    border-radius: 8px;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
   width: 100%;
   box-sizing: border-box;
+}
+
+@media screen and (max-width: 768px) {
+  .controlContainer {
+    flex-direction: row;
+    margin: 4px 0;
+  }
 }
 
 .widgetPicker {

@@ -4,8 +4,9 @@
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-    flex-direction: column;
-    border-radius: 8px;
+  flex-direction: column;
+  border-radius: 8px;
+  flex-shrink: 1;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
   width: 100%;
   box-sizing: border-box;
@@ -19,7 +20,7 @@
 }
 
 .widgetPicker {
-  background: #cccccc;
+  background: #343434;
 }
 
 .playback {

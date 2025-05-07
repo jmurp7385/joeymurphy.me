@@ -154,15 +154,17 @@ export default function MusicVisualizer() {
         case 'monochrome':
           // Green hue, vary lightness with amplitude
           return `hsl(120, ${visualOptions.saturation}%, ${
-            20 + (amplitude / 255) * 60
+            20 + (amplitude / 255) * index
           }%)`;
         case 'custom':
           const colors =
             visualOptions.customColors.length > 0
               ? visualOptions.customColors
               : ['#ffffff'];
-          // Cycle through custom colors, adjust opacity or use as base
-          return colors[index % colors.length];
+          // Cycle through custom colors, adjust
+          // make a gradient of the list of colors
+          const colorIndex = Math.floor((index / total) * colors.length);
+          return colors[colorIndex];
         default:
           return '#ffffff';
       }
@@ -192,7 +194,9 @@ export default function MusicVisualizer() {
         .attr('width', barWidth - 1)
         .attr('y', (d) => dimensions.height - (d / 255) * dimensions.height)
         .attr('height', (d) => (d / 255) * dimensions.height)
-        .attr('fill', (_, i) => getColor(i, bufferLength));
+        .attr('fill', (d, i) =>
+          getColor(i, bufferLength, (d / 255) * dimensions.height),
+        );
     },
     [
       dimensions.height,
@@ -236,6 +240,7 @@ export default function MusicVisualizer() {
   const drawCircles = useCallback(
     (
       svg: d3.Selection<SVGSVGElement | null, unknown, null, undefined>,
+      bufferLength: number,
       dataArray: Uint8Array,
       rotationAngle: number,
     ) => {
@@ -300,7 +305,7 @@ export default function MusicVisualizer() {
       }
 
       rotationAngle += visualOptions.rotationSpeed;
-
+      console.log(bufferLength);
       switch (visualizationType) {
         case 'bars':
           drawBars(svg, bufferLength, dataArray);
@@ -309,7 +314,7 @@ export default function MusicVisualizer() {
           drawWaves(svg, bufferLength, dataArray);
           break;
         case 'circles':
-          drawCircles(svg, dataArray, rotationAngle);
+          drawCircles(svg, bufferLength, dataArray, rotationAngle);
           break;
         default:
           console.error('Unknown visualization type:', visualizationType);
@@ -415,7 +420,7 @@ export default function MusicVisualizer() {
       ...visualOptions,
       barWidthMultiplier: 2.0,
       colorScheme: 'custom',
-      customColors: ['#ff00ff'],
+      customColors: ['#ec1254', '#f27c14', '#f5e31d', '#1ee8b6', '#26a1d5'],
       saturation: 100,
       lightness: 50,
     });
@@ -520,7 +525,7 @@ export default function MusicVisualizer() {
         <Widget widget={'widgetPicker'}>
           {ALL_WIDGET_TYPES.map((widget) => (
             <button
-              className={styles.widgetButton}
+              className={styles.input}
               key={widget}
               onClick={handleSectionClick(widget)}
             >
@@ -528,7 +533,7 @@ export default function MusicVisualizer() {
             </button>
           ))}
           <button
-            className={styles.widgetButton}
+            className={styles.input}
             onClick={handleSectionClick(ALL_WIDGET_TYPES)}
           >
             all
@@ -536,10 +541,14 @@ export default function MusicVisualizer() {
         </Widget>
         <Widget widget={'playback'} activeWidget={activeWidgets}>
           <button
+            className={styles.input}
             onClick={startMicAudio}
             disabled={isPlaying || !!audioElement}
           >
             Use Microphone
+          </button>
+          <button className={styles.input} onClick={resetVisualizer}>
+            Reset
           </button>
           <input
             type='file'
@@ -548,16 +557,25 @@ export default function MusicVisualizer() {
             onChange={handleFileUpload}
             className={styles.fileInput}
           />
-          <button onClick={resetVisualizer}>Reset</button>
           {audioElement && (
             <div className={styles.playbackControls}>
-              <button onClick={playAudio} disabled={isPlaying}>
+              <button
+                className={styles.input}
+                onClick={playAudio}
+                disabled={isPlaying}
+              >
                 Play
               </button>
-              <button onClick={pauseAudio} disabled={!isPlaying}>
+              <button
+                className={styles.input}
+                onClick={pauseAudio}
+                disabled={!isPlaying}
+              >
                 Pause
               </button>
-              <button onClick={stopAudio}>Stop</button>
+              <button className={styles.input} onClick={stopAudio}>
+                Stop
+              </button>
               <div className={styles.volumeControl}>
                 <label>Volume: </label>
                 <input
@@ -585,14 +603,19 @@ export default function MusicVisualizer() {
           )}
         </Widget>
         <Widget widget={'presets'} activeWidget={activeWidgets}>
-          <button onClick={setWideVibrantBars}>Wide Vibrant Bars</button>
-          <button onClick={setBoldGreenWave}>Bold Green Wave</button>
-          <button onClick={setSpinningKaleidoscope}>
+          <button className={styles.input} onClick={setWideVibrantBars}>
+            Wide Vibrant Bars
+          </button>
+          <button className={styles.input} onClick={setBoldGreenWave}>
+            Bold Green Wave
+          </button>
+          <button className={styles.input} onClick={setSpinningKaleidoscope}>
             Spinning Kaleidoscope
           </button>
         </Widget>
         <Widget widget={'customization'} activeWidget={activeWidgets}>
           <select
+            className={styles.input}
             value={visualizationType}
             onChange={(e) =>
               setVisualizationType(e.target.value as VisualizationType)
@@ -603,6 +626,7 @@ export default function MusicVisualizer() {
             <option value='circles'>Circles</option>
           </select>
           <select
+            className={styles.input}
             value={detail}
             onChange={(e) => setDetail(Number(e.target.value))}
           >
@@ -696,6 +720,7 @@ export default function MusicVisualizer() {
           <div className={styles.customizationItem}>
             <label>Color Scheme: </label>
             <select
+              className={styles.input}
               value={visualOptions.colorScheme}
               onChange={(e) =>
                 setVisualOptions({

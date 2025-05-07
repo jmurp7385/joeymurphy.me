@@ -3,11 +3,14 @@ import styles from '../styles/Home.module.css';
 import { NextSeo } from 'next-seo';
 import Footer from '../components/Footer';
 import Link from 'next/link';
+import { Icon } from '@iconify/react';
+import { OpenGraph } from 'next-seo/lib/types';
 
-const SEO = {
+const SEO: OpenGraph = {
   title: 'Joey Murphy',
   description: 'Homepage of Joey Murphy',
   url: 'https://joeymurphy.me',
+  profile: { firstName: 'Joey', lastName: 'Murphy' },
 };
 
 export default function Home() {
@@ -20,9 +23,7 @@ export default function Home() {
         title={SEO.title}
         description={SEO.description}
         openGraph={{
-          url: SEO.url,
-          title: SEO.title,
-          description: SEO.description,
+          ...SEO,
         }}
       />
       <main className={styles.main}>
@@ -32,9 +33,21 @@ export default function Home() {
           &nbsp;&&nbsp;
           <a href='https://www.joeymurphy.photography/'>Photographer</a>
         </p>
-        <p className={styles.description} style={{ marginTop: 0 }}>
-          <Link href='/reading-lists'>See what I have been reading!</Link>
-        </p>
+        <div className={styles.row}>
+          <Icon
+            icon='uil:books'
+            width='24'
+            height='24'
+          />
+          <p className={styles.description} style={{ marginTop: 0, marginBottom: 0 }}>
+            <Link href='/reading-lists'>&nbsp;See what I have been reading!&nbsp;</Link>
+          </p>
+          <Icon
+            icon='uil:books'
+            width='24'
+            height='24'
+          />
+        </div>
       </main>
       <Footer />
     </div>

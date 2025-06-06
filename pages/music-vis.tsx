@@ -5,7 +5,16 @@ import { Widget } from '../components/MusicVisualizer/Widget';
 import styles from '../styles/Visualizer.module.css';
 import { hexToHsl, WidgetType } from '../utilities';
 
-const ALL_WIDGET_TYPES: WidgetType[] = ['playback', 'presets', 'customization'];
+enum Detail {
+  Low = Math.pow(2, 5),
+  Medium = Math.pow(2, 6),
+  High = Math.pow(2, 7),
+  Extra = Math.pow(2, 8),
+  Super = Math.pow(2, 9),
+  Ultra = Math.pow(2, 10),
+}
+
+const ALL_WIDGET_TYPES: WidgetType[] = ['playback', 'customization', 'presets'];
 type PresetType =
   | 'Default'
   | 'Wide Vibrant Bars'
@@ -15,36 +24,50 @@ const PRESETS: Record<
   PresetType,
   {
     type: VisualizationType;
-    options: Partial<VisualOptions>;
+    options: VisualOptions;
+    detail: Detail;
   }
 > = {
   Default: {
     type: 'bars',
+    detail: Detail.Ultra,
     options: {
-      barWidthMultiplier: 1.0,
-      waveThickness: 2,
-      circleCount: 20,
+      barWidthMultiplier: 2.0,
+      waveThickness: 0,
+      circleCount: 0,
       colorScheme: 'rainbow',
-      customColors: ['#ff0000'],
+      customColors: [],
       rotationSpeed: 0,
       saturation: 100,
       lightness: 50,
+      hue: 0,
     },
   },
   'Wide Vibrant Bars': {
     type: 'bars',
+    detail: Detail.Super,
     options: {
+      circleCount: 0,
+      waveThickness: 0,
+      rotationSpeed: 0,
       barWidthMultiplier: 2.0,
       colorScheme: 'custom',
       customColors: ['#ec1254', '#f27c14', '#f5e31d', '#1ee8b6', '#26a1d5'],
       saturation: 100,
+      hue: 0,
       lightness: 50,
     },
   },
   'Bold Green Wave': {
     type: 'waves',
+    detail: Detail.Super,
     options: {
-      waveThickness: 10,
+      barWidthMultiplier: 0.5,
+      circleCount: 0,
+      rotationSpeed: 0,
+      customColors: [],
+      hue: 120,
+      waveThickness: 1,
       colorScheme: 'monochrome',
       saturation: 100,
       lightness: 50,
@@ -52,7 +75,12 @@ const PRESETS: Record<
   },
   'Spinning Kaleidoscope': {
     type: 'circles',
+    detail: Detail.Super,
     options: {
+      barWidthMultiplier: 0,
+      waveThickness: 0,
+      customColors: [],
+      hue: 0,
       circleCount: 50,
       rotationSpeed: 2,
       colorScheme: 'rainbow',
@@ -62,13 +90,6 @@ const PRESETS: Record<
   },
 };
 type VisualizationType = 'bars' | 'waves' | 'circles' | 'image';
-enum Detail {
-  Low = Math.pow(2, 5),
-  Medium = Math.pow(2, 6),
-  High = Math.pow(2, 7),
-  Extra = Math.pow(2, 8),
-  Super = Math.pow(2, 9),
-}
 
 interface VisualOptions {
   barWidthMultiplier: number;
@@ -80,6 +101,7 @@ interface VisualOptions {
   rotationSpeed: number;
   saturation: number;
   waveThickness: number;
+  gradient?: boolean;
 }
 
 export default function MusicVisualizer() {
@@ -104,17 +126,9 @@ export default function MusicVisualizer() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
-  const [visualOptions, setVisualOptions] = useState<VisualOptions>({
-    barWidthMultiplier: 1.0,
-    waveThickness: 2,
-    circleCount: 20,
-    colorScheme: 'rainbow',
-    customColors: ['#ff0000'],
-    rotationSpeed: 0,
-    hue: 120,
-    saturation: 100,
-    lightness: 50,
-  });
+  const [visualOptions, setVisualOptions] = useState<VisualOptions>(
+    PRESETS.Default.options,
+  );
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -203,25 +217,46 @@ export default function MusicVisualizer() {
     (index: number, total: number, amplitude: number = 0) => {
       switch (visualOptions.colorScheme) {
         case 'rainbow':
-          const hue = ((index / total) * 360) % 360;
+          const hue = (((index + visualOptions.hue) / total) * 360) % 360;
           // Adjust lightness based on amplitude (0-255 mapped to 60-80%)
-          const lightness = 40 + ((index % total) % 40);
-          return `hsl(${hue}, ${visualOptions.saturation}%, ${lightness}%)`;
+          // const lightness = 40 + ((index % total) % 40);
+          return `hsl(${hue}, ${visualOptions.saturation}%, ${50}%)`;
         case 'monochrome':
           // Green hue, vary lightness with amplitude
           return `hsl(${visualOptions.hue}, ${visualOptions.saturation}%, ${
-            20 + (amplitude / 255) * index
+            visualOptions.lightness + (amplitude / 255) * 20
           }%)`;
         case 'custom':
           const colors =
             visualOptions.customColors.length > 0
-              ? visualOptions.customColors
+              ? visualOptions.customColors.sort()
               : ['#ffffff'];
-          // Cycle through custom colors, adjust
-          // make a gradient of the list of colors
-          const colorIndex = Math.floor((index / total) * colors.length);
-          const { h, s, l } = hexToHsl(colors[colorIndex]);
-          return `hsl(${h},${s}%,${l}%)`;
+
+          if (visualOptions.gradient) {
+            // Cycle through custom colors, adjust
+            // make a gradient of the list of colors
+            const gradientPosition = (index / total) * (colors.length - 1);
+            const lowerIndex = Math.floor(gradientPosition);
+            const upperIndex = Math.ceil(gradientPosition);
+            const mixRatio = gradientPosition - lowerIndex;
+
+            const lowerColor = hexToHsl(colors[lowerIndex]);
+            const upperColor = hexToHsl(colors[upperIndex]);
+
+            const h = lowerColor.h + mixRatio * (upperColor.h - lowerColor.h);
+            const s = lowerColor.s + mixRatio * (upperColor.s - lowerColor.s);
+            const l = lowerColor.l + mixRatio * (upperColor.l - lowerColor.l);
+
+            return `hsl(${h},${s}%,${l}%)`;
+          } else {
+            // Cycle through custom colors, adjust
+            const colorIndex = Math.floor((amplitude / 100) % colors.length); // Math.floor((index / total) * colors.length);
+            console.log(
+              `Color index: ${colorIndex}, Total: ${amplitude}, Colors: ${colors[colorIndex]}`,
+            );
+            const { h, s, l } = hexToHsl(colors[colorIndex]);
+            return `hsl(${h},${s}%,${l}%)`;
+          }
         default:
           return '#ffffff';
       }
@@ -229,7 +264,9 @@ export default function MusicVisualizer() {
     [
       visualOptions.colorScheme,
       visualOptions.customColors,
+      visualOptions.gradient,
       visualOptions.hue,
+      visualOptions.lightness,
       visualOptions.saturation,
     ],
   );
@@ -495,16 +532,18 @@ export default function MusicVisualizer() {
   };
 
   const addCustomColor = () => {
-    setVisualOptions({
-      ...visualOptions,
-      customColors: [...visualOptions.customColors, '#ffffff'],
-    });
+    setVisualOptions((prev) => ({
+      ...prev,
+      customColors: [...prev.customColors, '#ffffff'],
+    }));
   };
 
   const updateCustomColor = (index: number, color: string) => {
-    const newColors = [...visualOptions.customColors];
-    newColors[index] = color;
-    setVisualOptions({ ...visualOptions, customColors: newColors });
+    setVisualOptions((prev) => {
+      const newColors = [...prev.customColors];
+      newColors[index] = color;
+      return { ...visualOptions, customColors: newColors };
+    });
   };
 
   const removeCustomColor = (index: number) => {
@@ -552,24 +591,27 @@ export default function MusicVisualizer() {
     <div className={styles.container}>
       <h1>Music Visualizer (alpha)</h1>
 
-      <div className={styles.widgetContainer}>
-        <Widget widget={'widgetPicker'} style={{ maxWidth: 400 }}>
+      <Widget
+        widget={'widgetPicker'}
+        style={{ width: '100%', flexDirection: 'row', flexGrow: 0 }}
+      >
+        <button
+          className={styles.input}
+          onClick={handleSectionClick(ALL_WIDGET_TYPES)}
+        >
+          all
+        </button>
+        {ALL_WIDGET_TYPES.map((widget) => (
           <button
             className={styles.input}
-            onClick={handleSectionClick(ALL_WIDGET_TYPES)}
+            key={widget}
+            onClick={handleSectionClick(widget)}
           >
-            all
+            {widget}
           </button>
-          {ALL_WIDGET_TYPES.map((widget) => (
-            <button
-              className={styles.input}
-              key={widget}
-              onClick={handleSectionClick(widget)}
-            >
-              {widget}
-            </button>
-          ))}
-        </Widget>
+        ))}
+      </Widget>
+      <div className={styles.widgetContainer}>
         <Widget
           widget={'playback'}
           activeWidget={activeWidgets}
@@ -591,7 +633,7 @@ export default function MusicVisualizer() {
             ref={fileInputRef}
             onChange={handleFileUpload}
             className={styles.fileInput}
-            style={{ width: '100%' }}
+            style={{ width: '100%', textWrap: 'wrap' }}
           />
           {audioElement && (
             <div className={styles.playbackControls}>
@@ -638,7 +680,226 @@ export default function MusicVisualizer() {
             </div>
           )}
         </Widget>
-        <Widget widget={'presets'} activeWidget={activeWidgets}>
+        <Widget widget={'customization'} activeWidget={activeWidgets}>
+          <select
+            className={styles.input}
+            value={visualizationType}
+            onChange={(e) =>
+              setVisualizationType(e.target.value as VisualizationType)
+            }
+          >
+            <option value='bars'>Bars</option>
+            <option value='waves'>Waves</option>
+            <option value='circles'>Circles</option>
+          </select>
+          <div className={styles.customizationItem}>
+            <div>
+              <div className={styles.customizationItem}>
+                <label>Detail: {detail}</label>
+                <input
+                  type='range'
+                  min='5'
+                  max={'10'}
+                  step='1'
+                  value={Math.log2(detail)}
+                  onChange={(e) =>
+                    setDetail(Math.pow(2, Number(e.target.value)))
+                  }
+                />
+              </div>
+              {visualizationType === 'bars' && (
+                <div className={styles.customizationItem}>
+                  <label>Bar Width Multiplier: </label>
+                  <input
+                    type='range'
+                    min='0.5'
+                    max='2'
+                    step='0.1'
+                    value={visualOptions.barWidthMultiplier}
+                    onChange={(e) =>
+                      setVisualOptions({
+                        ...visualOptions,
+                        barWidthMultiplier: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              )}
+              {visualizationType === 'waves' && (
+                <div className={styles.customizationItem}>
+                  <label>Wave Thickness: </label>
+                  <input
+                    type='range'
+                    min='1'
+                    max='10'
+                    step='1'
+                    value={visualOptions.waveThickness}
+                    onChange={(e) =>
+                      setVisualOptions({
+                        ...visualOptions,
+                        waveThickness: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              )}
+              {visualizationType === 'circles' && (
+                <>
+                  <div className={styles.customizationItem}>
+                    <label>Circle Count: </label>
+                    <input
+                      type='range'
+                      min='5'
+                      max='50'
+                      step='1'
+                      value={visualOptions.circleCount}
+                      onChange={(e) =>
+                        setVisualOptions({
+                          ...visualOptions,
+                          circleCount: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={styles.customizationItem}>
+                    <label>Rotation Speed: </label>
+                    <input
+                      type='range'
+                      min='-5'
+                      max='5'
+                      step='0.1'
+                      value={visualOptions.rotationSpeed}
+                      onChange={(e) =>
+                        setVisualOptions({
+                          ...visualOptions,
+                          rotationSpeed: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </>
+              )}
+              <div className={styles.customizationItem}>
+                <label>Color Scheme: </label>
+                <select
+                  className={styles.input}
+                  value={visualOptions.colorScheme}
+                  onChange={(e) =>
+                    setVisualOptions({
+                      ...visualOptions,
+                      colorScheme: e.target
+                        .value as VisualOptions['colorScheme'],
+                    })
+                  }
+                >
+                  <option value='rainbow'>Rainbow</option>
+                  <option value='monochrome'>Monochrome</option>
+                  <option value='custom'>Custom</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              {visualOptions.colorScheme === 'custom' && (
+                <div className={styles.customColors}>
+                  {visualOptions.customColors.map((color, index) => (
+                    <div key={index} className={styles.colorPicker}>
+                      <input
+                        type='color'
+                        value={color}
+                        onChange={(e) =>
+                          updateCustomColor(index, e.target.value)
+                        }
+                      />
+                      <button
+                        onClick={() => removeCustomColor(index)}
+                        disabled={visualOptions.customColors.length === 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={addCustomColor}>Add Color</button>
+                  <div className={styles.customizationItem}>
+                    <label>Gradient </label>
+                    <input
+                      type='checkbox'
+                      checked={visualOptions.gradient}
+                      onChange={(e) =>
+                        setVisualOptions({
+                          ...visualOptions,
+                          gradient: e.target.checked,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+              {visualOptions.colorScheme !== 'custom' && (
+                <>
+                  <div className={styles.customizationItem}>
+                    <label>Hue: </label>
+                    <input
+                      type='range'
+                      min='0'
+                      max='360'
+                      step='1'
+                      value={visualOptions.hue}
+                      onChange={(e) =>
+                        setVisualOptions({
+                          ...visualOptions,
+                          hue: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={styles.customizationItem}>
+                    <label>Saturation: </label>
+                    <input
+                      type='range'
+                      min='0'
+                      max='100'
+                      step='1'
+                      value={visualOptions.saturation}
+                      onChange={(e) =>
+                        setVisualOptions({
+                          ...visualOptions,
+                          saturation: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={styles.customizationItem}>
+                    <label>Lightness: </label>
+                    <input
+                      type='range'
+                      min='0'
+                      max='100'
+                      step='.1'
+                      value={visualOptions.lightness}
+                      onChange={(e) =>
+                        setVisualOptions({
+                          ...visualOptions,
+                          lightness: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </Widget>
+        <Widget
+          widget={'presets'}
+          activeWidget={activeWidgets}
+          style={{
+            width: 'fit-content',
+            minWidth: 300,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+            gridTemplateRows: 'auto',
+          }}
+        >
           {[
             {
               label: 'Default',
@@ -653,202 +914,23 @@ export default function MusicVisualizer() {
               label: 'Spinning Kaleidoscope',
               preset: PRESETS['Spinning Kaleidoscope'],
             },
-          ].map(({ label, preset: { type, options } }) => (
+          ].map(({ label, preset: { type, options, detail } }) => (
             <button
               key={label}
               className={styles.input}
+              style={{ height: '100%' }}
               onClick={() => {
                 setVisualOptions((prev) => ({
                   ...prev,
                   ...options,
                 }));
                 setVisualizationType(type);
+                setDetail(detail);
               }}
             >
               {label}
             </button>
           ))}
-        </Widget>
-        <Widget widget={'customization'} activeWidget={activeWidgets}>
-          <select
-            className={styles.input}
-            value={visualizationType}
-            onChange={(e) =>
-              setVisualizationType(e.target.value as VisualizationType)
-            }
-          >
-            <option value='bars'>Bars</option>
-            <option value='waves'>Waves</option>
-            <option value='circles'>Circles</option>
-          </select>
-          <div className={styles.customizationItem}>
-            <label>Detail: {detail}</label>
-            <input
-              type='range'
-              min='5'
-              max={'10'}
-              step='1'
-              value={Math.log2(detail)}
-              onChange={(e) => setDetail(Math.pow(2, Number(e.target.value)))}
-            />
-          </div>
-          {visualizationType === 'bars' && (
-            <div className={styles.customizationItem}>
-              <label>Bar Width Multiplier: </label>
-              <input
-                type='range'
-                min='0.5'
-                max='2'
-                step='0.1'
-                value={visualOptions.barWidthMultiplier}
-                onChange={(e) =>
-                  setVisualOptions({
-                    ...visualOptions,
-                    barWidthMultiplier: Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-          )}
-          {visualizationType === 'waves' && (
-            <div className={styles.customizationItem}>
-              <label>Wave Thickness: </label>
-              <input
-                type='range'
-                min='1'
-                max='10'
-                step='1'
-                value={visualOptions.waveThickness}
-                onChange={(e) =>
-                  setVisualOptions({
-                    ...visualOptions,
-                    waveThickness: Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-          )}
-          {visualizationType === 'circles' && (
-            <>
-              <div className={styles.customizationItem}>
-                <label>Circle Count: </label>
-                <input
-                  type='range'
-                  min='5'
-                  max='50'
-                  step='1'
-                  value={visualOptions.circleCount}
-                  onChange={(e) =>
-                    setVisualOptions({
-                      ...visualOptions,
-                      circleCount: Number(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div className={styles.customizationItem}>
-                <label>Rotation Speed: </label>
-                <input
-                  type='range'
-                  min='-5'
-                  max='5'
-                  step='0.1'
-                  value={visualOptions.rotationSpeed}
-                  onChange={(e) =>
-                    setVisualOptions({
-                      ...visualOptions,
-                      rotationSpeed: Number(e.target.value),
-                    })
-                  }
-                />
-              </div>
-            </>
-          )}
-          <div className={styles.customizationItem}>
-            <label>Color Scheme: </label>
-            <select
-              className={styles.input}
-              value={visualOptions.colorScheme}
-              onChange={(e) =>
-                setVisualOptions({
-                  ...visualOptions,
-                  colorScheme: e.target.value as VisualOptions['colorScheme'],
-                })
-              }
-            >
-              <option value='rainbow'>Rainbow</option>
-              <option value='monochrome'>Monochrome</option>
-              <option value='custom'>Custom</option>
-            </select>
-          </div>
-          {visualOptions.colorScheme === 'custom' && (
-            <div className={styles.customColors}>
-              {visualOptions.customColors.map((color, index) => (
-                <div key={index} className={styles.colorPicker}>
-                  <input
-                    type='color'
-                    value={color}
-                    onChange={(e) => updateCustomColor(index, e.target.value)}
-                  />
-                  <button
-                    onClick={() => removeCustomColor(index)}
-                    disabled={visualOptions.customColors.length === 1}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <button onClick={addCustomColor}>Add Color</button>
-            </div>
-          )}
-          <div className={styles.customizationItem}>
-            <label>Hue: </label>
-            <input
-              type='range'
-              min='0'
-              max='360'
-              step='1'
-              value={visualOptions.hue}
-              onChange={(e) =>
-                setVisualOptions({
-                  ...visualOptions,
-                  hue: Number(e.target.value),
-                })
-              }
-            />
-          </div>
-          <div className={styles.customizationItem}>
-            <label>Saturation: </label>
-            <input
-              type='range'
-              min='0'
-              max='100'
-              step='1'
-              value={visualOptions.saturation}
-              onChange={(e) =>
-                setVisualOptions({
-                  ...visualOptions,
-                  saturation: Number(e.target.value),
-                })
-              }
-            />
-          </div>
-          <div className={styles.customizationItem}>
-            <label>Lightness: </label>
-            <input
-              type='range'
-              min='0'
-              max='100'
-              step='1'
-              value={visualOptions.lightness}
-              onChange={(e) =>
-                setVisualOptions({
-                  ...visualOptions,
-                  lightness: Number(e.target.value),
-                })
-              }
-            />
-          </div>
         </Widget>
       </div>
       {error && <div className={styles.error}>{error}</div>}

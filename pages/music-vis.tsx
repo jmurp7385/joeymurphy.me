@@ -349,7 +349,7 @@ export default function MusicVisualizer() {
     ) => {
       const centerX = dimensions.width / 2;
       const centerY = dimensions.height / 2;
-      const maxRadius = Math.min(dimensions.width, dimensions.height) / 4;
+      const maxRadius = Math.min(dimensions.width, dimensions.height) / 2 - 10;
 
       const circleData = dataArray.slice(0, visualOptions.circleCount);
       svg
@@ -361,7 +361,7 @@ export default function MusicVisualizer() {
         .attr('cy', centerY)
         .attr('r', (d) => (d / 255) * maxRadius)
         .attr('fill', 'none')
-        .attr('stroke', (_, i) => getColor(i, circleData.length))
+        .attr('stroke', (d, i) => getColor(i, circleData.length, d))
         .attr('stroke-width', 2)
         .attr(
           'transform',

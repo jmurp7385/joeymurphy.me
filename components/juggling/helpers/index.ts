@@ -4,13 +4,16 @@ export function classifySiteswap(siteswap: string): {
   reason: string;
 } {
   // Step 1: Parse the siteswap
-  const throwHeights = siteswap.split('').map(Number);
+  const throwHeights = [...siteswap].map(Number);
   const period = throwHeights.length;
-  const sum = throwHeights.reduce((acc, val) => acc + val, 0);
-  const numBalls = sum / period;
+  const sum = throwHeights.reduce(
+    (accumulator, value) => accumulator + value,
+    0,
+  );
+  const numberBalls = sum / period;
 
   // Step 2: Validate the siteswap
-  if (!Number.isInteger(numBalls)) {
+  if (!Number.isInteger(numberBalls)) {
     return {
       type: 'invalid',
       numberBalls: -1,
@@ -31,14 +34,14 @@ export function classifySiteswap(siteswap: string): {
       // Single odd throw (e.g., "3")
       return {
         type: 'cascade',
-        numberBalls: numBalls,
+        numberBalls: numberBalls,
         reason: 'Single odd throw, alternating hands.',
       };
     } else if (highThrows.length === 1 && ones.length === period - 1) {
       // One high throw, rest are "1"s (e.g., "51", "71")
       return {
         type: 'shower',
-        numberBalls: numBalls,
+        numberBalls,
         reason: `High throw (${highThrows[0]}) followed by ${ones.length} '1's.`,
       };
     } else if (
@@ -48,7 +51,7 @@ export function classifySiteswap(siteswap: string): {
       // Multiple high throws followed by "1"s (e.g., "531")
       return {
         type: 'half-shower',
-        numberBalls: numBalls,
+        numberBalls,
         reason: `High throws (${highThrows.join(', ')}) followed by ${
           ones.length
         } '1's.`,
@@ -57,7 +60,7 @@ export function classifySiteswap(siteswap: string): {
       // Multiple odd throws, no "1"s or mixed (e.g., "7531")
       return {
         type: 'cascade',
-        numberBalls: numBalls,
+        numberBalls,
         reason: 'All odd throws, alternating hands.',
       };
     }
@@ -65,14 +68,14 @@ export function classifySiteswap(siteswap: string): {
     // All throws are even (e.g., "4")
     return {
       type: 'fountain',
-      numberBalls: numBalls,
+      numberBalls,
       reason: 'All even throws, same-hand pattern.',
     };
   } else {
     // Mixed odd and even (not in your examples, but possible)
     return {
       type: 'mixed',
-      numberBalls: numBalls,
+      numberBalls,
       reason: 'Combination of odd and even throws.',
     };
   }
@@ -81,14 +84,14 @@ export function classifySiteswap(siteswap: string): {
 function generateNextCycle(siteswapAnalysis: {
   period: number;
   isValid: boolean;
-  numBalls: number | null;
+  numBalls: number | undefined;
   siteswap: number[];
 }) {
   const { period, isValid, numBalls } = siteswapAnalysis;
 
   // If the siteswap is invalid, return null
   if (!isValid || !numBalls) {
-    return null;
+    return;
   }
 
   // Parse the original siteswap string to get throw heights
@@ -138,35 +141,35 @@ function analyzeSiteswap(siteswap: number[]) {
   const period = siteswap.length;
 
   const landings = new Set();
-  for (let i = 0; i < period; i++) {
-    const landing = (i + siteswap[i]) % period;
+  for (let index = 0; index < period; index++) {
+    const landing = (index + siteswap[index]) % period;
     if (landings.has(landing)) {
-      return { siteswap, period, isValid: false, numBalls: null };
+      return { siteswap, period, isValid: false, numBalls: undefined };
     }
     landings.add(landing);
   }
 
-  const sum = siteswap.reduce((acc, val) => acc + val, 0);
-  const numBalls = sum / period;
-  const isValid = Number.isInteger(numBalls);
-  const beat = numBalls; // Reference beat value for normalizing throw durations (based on "3")
+  const sum = siteswap.reduce((accumulator, value) => accumulator + value, 0);
+  const numberBalls = sum / period;
+  const isValid = Number.isInteger(numberBalls);
+  const beat = numberBalls; // Reference beat value for normalizing throw durations (based on "3")
 
   return {
     siteswap,
     period,
     isValid,
     beat,
-    numBalls: isValid ? numBalls : null,
+    numBalls: isValid ? numberBalls : undefined,
   };
 }
 
 // Test the functions
 const siteswaps = [[3], [5, 3, 1], [7, 5, 3, 1], [4]];
-siteswaps.forEach((siteswap) => {
+for (const siteswap of siteswaps) {
   const analysis = analyzeSiteswap(siteswap);
   const nextCycle = generateNextCycle(analysis);
   console.log(`Siteswap: ${siteswap}`);
   console.log(`Analysis:`, analysis);
   console.log(`Next Cycle Throws:`, nextCycle);
   console.log('---');
-});
+}

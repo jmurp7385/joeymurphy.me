@@ -5,7 +5,7 @@ import { classifySiteswap } from './helpers';
 
 // Define default values for animation parameters to ensure consistent initialization
 const defaults = {
-  sitswap: [5, 1], // Default siteswap pattern
+  siteswap: [5, 1], // Default siteswap pattern
   dwellMin: 200, // Minimum dwell time in ms (realistic hand hold time)
   dwellMax: 500, // Maximum dwell time in ms (allows flexibility but keeps rhythm)
   speedLimit: 1000, // Maximum throw duration in ms, allows higher throws within SVG
@@ -19,6 +19,7 @@ export interface Ball {
   x: number; // Current X-position in SVG
   y: number; // Current Y-position in SVG
   inAir: boolean; // Whether the ball is currently in the air
+  lastThrowTime: number; // Simulated time (ms) when the ball was last thrown
   throwTime: number; // Simulated time (ms) when the ball is scheduled to throw next
   fromLeft: boolean; // Indicates if the ball is currently in the left hand
   currentThrow: number; // Current siteswap value (e.g., 3, 4, etc.)
@@ -36,7 +37,7 @@ export default function SiteswapAnimation() {
   const svgReference = useRef<SVGSVGElement | null>(null);
 
   // State for the siteswap pattern (array of numbers), e.g., [3] for a 3-ball cascade
-  const [siteswap, setSiteswap] = useState<number[]>(defaults.sitswap);
+  const [siteswap, setSiteswap] = useState<number[]>(defaults.siteswap);
 
   // State to toggle animation pause/play
   const [paused, setPaused] = useState<boolean>(false);
@@ -116,6 +117,7 @@ export default function SiteswapAnimation() {
         x: isLeft ? leftHandX : rightHandX,
         y: handY,
         inAir: false,
+        lastThrowTime: 0,
         throwTime: stagger, // Simulated time from start
         stagger, // Store initial stagger for reference
         fromLeft: isLeft,
@@ -141,6 +143,7 @@ export default function SiteswapAnimation() {
           x: isLeft ? leftHandX : rightHandX,
           y: handY,
           inAir: false,
+          lastThrowTime: 0,
           throwTime: stagger, // Simulated time from start
           stagger, // Store initial stagger for reference
           fromLeft: isLeft,
@@ -149,52 +152,7 @@ export default function SiteswapAnimation() {
         };
       }),
     );
-    // setBallArray([
-    //   {
-    //     id: 0,
-    //     x: leftHandX,
-    //     y: handY,
-    //     inAir: false,
-    //     throwTime: 0, // Simulated time from start
-    //     stagger: 0, // Store initial stagger for reference
-    //     fromLeft: true,
-    //     currentThrow: 5,
-    //     throwIndex: 0 % patternLength,
-    //   },
-    //   {
-    //     id: 1,
-    //     x: leftHandX,
-    //     y: handY,
-    //     inAir: false,
-    //     throwTime: 500, // Simulated time from start
-    //     stagger: 500, // Store initial stagger for reference
-    //     fromLeft: true,
-    //     currentThrow: 5,
-    //     throwIndex: 1 % patternLength,
-    //   },
-
-    //   {
-    //     id: 2,
-    //     x: rightHandX,
-    //     y: handY,
-    //     inAir: false,
-    //     throwTime: 1000, // Simulated time from start
-    //     stagger: 1000, // Store initial stagger for reference
-    //     fromLeft: false,
-    //     currentThrow: 1,
-    //     throwIndex: 3 % patternLength,
-    //   },
-    // ]);
-  }, [
-    numberBalls,
-    beatDuration,
-    cycleDuration,
-    handY,
-    leftHandX,
-    patternLength,
-    rightHandX,
-    siteswap,
-  ]);
+  }, [numberBalls, beatDuration, cycleDuration, handY, leftHandX, patternLength, rightHandX, siteswap, isShower]);
 
   // useEffect hook to run animation logic when siteswap or control parameters change
   useEffect(() => {
@@ -247,101 +205,68 @@ export default function SiteswapAnimation() {
                 Math.min(speedLimit, baseDuration / speedMultiplier) /
                 paceMultiplier; // Apply speed limit, speed multiplier, and pace multiplier
               const peakY = handY - maxHeight * (ball.currentThrow / 9); // Peak height scaled to siteswap value
-              const timeElapsed = time - ball.throwTime; // Time since last throw (simulated)
-
-              const cycleProgress = Math.min(
-                Math.max(timeElapsed / adjustedDuration, 0),
-                1,
-              ); // Progress of throw (0 to 1)
               const isEven = ball.currentThrow % 2 === 0; // Check if throw switches hands (odd) or stays (even)
 
-              const shouldLand = timeElapsed >= adjustedDuration && ball.inAir;
-              // Check if the ball has landed
-              if (shouldLand) {
+              // Check if the ball should be thrown
+              if (!ball.inAir && time >= ball.throwTime) {
+                ball.inAir = true; // Mark ball as in air
+                ball.lastThrowTime = time; // Record the time of this throw
+
+                // Record throw history
+                setThrowHistory((previous) => [
+                  {
+                    ...ball,
+                    throwTime: Math.floor(time),
+                  },
+                  ...previous,
+                ]);
+
+                // Log throw event
+                console.log(
+                  `Ball ${ball.id} thrown at ${time.toFixed(
+                    0,
+                  )}ms, from ${
+                    ball.fromLeft ? 'left' : 'right'
+                  }, value: ${ball.currentThrow}`,
+                );
+              }
+
+              const timeSinceThrow = time - ball.lastThrowTime;
+              const flightProgress = Math.min(
+                Math.max(timeSinceThrow / adjustedDuration, 0),
+                1,
+              );
+
+              // Check if the ball should land
+              if (ball.inAir && timeSinceThrow >= adjustedDuration) {
                 ball.inAir = false; // Mark ball as landed
                 ball.fromLeft = isEven ? ball.fromLeft : !ball.fromLeft; // Switch hands for odd throws
                 ball.throwIndex = isShower
                   ? ball.fromLeft
                     ? 0
                     : 1
-                  : (ball.throwIndex + 1) % patternLength; // Move to next siteswap value
+                  : (ball.throwIndex + numberBalls) % patternLength; // Move to next siteswap value for this hand
                 ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value
-                // const dwellTime = Math.min(
-                //   Math.max(dwellMin, beatDuration),
-                //   dwellMax,
-                // ); // Clamp dwell to beat duration
-                // Schedule next throw at the stagger offset in the next cycle
-                const cyclesCompleted = Math.floor(time / cycleDuration);
-
-                ball.throwTime =
-                  (cyclesCompleted + 1) * cycleDuration + ball.stagger;
+                const dwellTime = Math.min(
+                  Math.max(dwellMin, beatDuration),
+                  dwellMax,
+                ); // Clamp dwell to beat duration
+                ball.throwTime = time + dwellTime; // Schedule next throw
                 ball.x = ball.fromLeft ? leftHandX : rightHandX; // Move to landing hand
                 ball.y = handY; // Reset to hand height
                 setThrowCount((previous) => previous + 1); // Increment throw count
-                // Log landing event
-                console.log(
-                  `Ball ${ball.id} landed at ${time}ms, next throw at ${
-                    ball.throwTime
-                  }ms, from ${ball.fromLeft ? 'left' : 'right'}`,
-                );
-              }
-
-              // Check if the ball should be thrown (when its scheduled time is reached)
-
-              const shouldThrow =
-                !ball.inAir &&
-                timeElapsed >= 0 &&
-                timeElapsed <= time + beatDuration;
-              console.log('---tick---');
-              console.table({
-                id: ball.id,
-                shouldLand,
-                shouldThrow,
-                inAir: ball.inAir,
-                throwIndex: ball.throwIndex,
-                beatDuration,
-                throwTime: ball.throwTime,
-                timeElapsed,
-                adjustedDuration,
-                cycleProgress,
-                'ball.currentThrow': ball.currentThrow,
-                beat: beat,
-                baseThrowDuration: baseThrowDuration,
-                baseDuration: baseDuration,
-                'timeElapsed/adjustedDuration': timeElapsed / adjustedDuration,
-              });
-              if (shouldThrow) {
-                ball.inAir = true; // Mark ball as in air
-                ball.throwTime = time + dwellMin; // Update throw time to current simulated time
-                // Record throw history
-                setThrowHistory((previous) => [
-                  {
-                    ...ball,
-                    throwTime: Math.floor(ball.throwTime),
-                  },
-                  ...previous,
-                ]);
-                // Log throw event
-                console.log(
-                  `Ball ${ball.id} thrown at ${time}ms, from ${
-                    ball.fromLeft ? 'left' : 'right'
-                  }, expected to land at ${ball.throwTime} value: ${
-                    ball.currentThrow
-                  }`,
-                );
               }
 
               // Update ball position if in air and not yet landed
-              if (ball.inAir && cycleProgress < 1) {
+              if (ball.inAir) {
                 const startX = ball.fromLeft ? leftHandX : rightHandX; // Starting X-position
                 const oppositeHandX = ball.fromLeft ? rightHandX : leftHandX;
                 const endX = isEven ? startX : oppositeHandX; // Ending X-position
-                ball.x = startX + (endX - startX) * cycleProgress; // Linear interpolation for X
+                ball.x = startX + (endX - startX) * flightProgress; // Linear interpolation for X
                 ball.y =
                   handY -
-                  (handY - peakY) * 4 * cycleProgress * (1 - cycleProgress); // Parabolic Y motion
+                  (handY - peakY) * 4 * flightProgress * (1 - flightProgress); // Parabolic Y motion
               }
-              if (cycleProgress >= 1.2) startTimeReference.current = 0;
               return ball;
             }),
           );
@@ -385,29 +310,7 @@ export default function SiteswapAnimation() {
       }
       d3.select(currentSvgReference).selectAll('*').remove();
     };
-  }, [
-    balls,
-    baseThrowDuration,
-    beat,
-    beatDuration,
-    cycleDuration,
-    dwellMax, // Re-run when maximum dwell time changes
-    dwellMin, // Re-run when minimum dwell time changes
-    handY,
-    leftHandX,
-    maxHeight,
-    numberBalls,
-    paceMultiplier, // Re-run when pace multiplier changes
-    patternLength,
-    paused, // Re-run when pause state changes
-    rightHandX,
-    simulatedTime,
-    siteswap, // Re-run effect when siteswap changes
-    speedLimit, // Re-run when speed limit changes
-    speedMultiplier, // Re-run when speed multiplier changes
-    throwCount,
-    throwLimit, // Re-run when throw limit changes
-  ]);
+  }, [balls, baseThrowDuration, beat, beatDuration, cycleDuration, dwellMax, dwellMin, handY, isShower, leftHandX, maxHeight, numberBalls, paceMultiplier, patternLength, paused, rightHandX, simulatedTime, siteswap, speedLimit, speedMultiplier, throwCount, throwLimit]);
 
   // JSX for rendering the SVG, control UI, and throw history visualization
   return (

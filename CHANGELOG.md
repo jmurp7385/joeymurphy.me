@@ -4,6 +4,10 @@
 
 - [mu miror](https://editor.p5js.org/wyattroy/sketches/s1v8O0WBf) from [youtube](https://www.youtube.com/watch?v=2BCMZMRFljI&t=1s) in combination with music visualizer
 
+## 0.6.1
+
+- update packages
+
 ## 0.6.0
 
 - Music Visualizer (Alpha)

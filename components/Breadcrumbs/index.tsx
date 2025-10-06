@@ -1,6 +1,6 @@
-import React, { CSSProperties, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import React, { CSSProperties, ReactNode, useEffect, useState } from 'react';
 import styles from './Breadcrumbs.module.css';
 
 /**
@@ -8,8 +8,8 @@ import styles from './Breadcrumbs.module.css';
  * @param str
  * @returns
  */
-export function tranformLabelHuman(string_: string): string {
-  return string_
+export function transformLabelHuman(str: string): string {
+  return str
     .replace('-', ' ')
     .replaceAll(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
 }
@@ -92,10 +92,10 @@ export interface BreadcrumbsProperties {
   replaceCharacterList?: Array<CharacterMap> | undefined;
 
   /** A transformation function that allows to customize the label strings. Receives the label string and has to return a string or React Component */
-  transformLabel?: ((title: string) => React.ReactNode) | undefined;
+  transformLabel?: ((title: string) => ReactNode);
 
   /** Array containing all the indexes of the path that should be omitted and not be rendered as labels. If we have a path like '/home/category/1' then you might want to pass '[2]' here, which omits the breadcrumb label '1'. Indexes start with 0. Example: [2] Default: undefined */
-  omitIndexList?: Array<number> | undefined;
+  omitIndexList?: Array<number>;
 
   /** An inline style object for the outer container */
   containerStyle?: CSSProperties;
@@ -116,7 +116,7 @@ export interface BreadcrumbsProperties {
   inactiveItemClassName?: string;
 
   /** An inline style object for the active breadcrumb list item */
-  activeItemStyle?: CSSProperties;
+  activeItemStyle?: CSSProperties ;
 
   /** Classes to be used for the active breadcrumb list item */
   activeItemClassName?: string;

@@ -5,13 +5,13 @@ import { useEffect, useRef } from 'react';
 const SEO = {
   title: 'Vanilla JS Siteswap Animator',
   description: 'A high-performance juggling animator for standard, synchronous, and multiplex siteswaps.',
-  url: 'https://joeymurphy.me/siteswap-vanilla',
+  url: 'https://joeymurphy.me/siteswap',
 };
 
 /**
  * A React component that hosts the vanilla JavaScript Siteswap Animator.
  */
-export default function SiteswapVanillaPage() {
+export default function SiteswapPage() {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

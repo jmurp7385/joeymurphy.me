@@ -1,12 +1,15 @@
 // pages/index.tsx
 import * as d3 from 'd3';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Widget } from '../components/MusicVisualizer/Widget';
+import { Widget } from '../components/Widget';
 import styles from '../styles/Visualizer.module.css';
-import { WidgetType } from '../utilities';
 
 const ALL_WIDGET_TYPES: WidgetType[] = ['playback', 'presets', 'customization'];
-
+type WidgetType =
+  | 'widgetPicker'
+  | 'playback'
+  | 'presets'
+  | 'customization';
 type VisualizationType = 'bars' | 'waves' | 'circles' | 'image';
 enum Detail {
   Low = Math.pow(2, 7),

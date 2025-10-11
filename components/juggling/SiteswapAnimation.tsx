@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-
+import { Widget } from '../Widget';
+type WidgetType = 'ballColor' | 'siteswap' | 'animation';
 const ANIMATION_CONFIG = {
   // Canvas dimensions
-  CANVAS_WIDTH: 600,
-  CANVAS_HEIGHT: 600,
+  CANVAS_WIDTH: window.innerWidth * 0.8,
+  CANVAS_HEIGHT: window.innerHeight * 0.5,
 
   // Hand properties
   HAND_Y_OFFSET: 50,
-  HAND_SEPARATION_FACTOR: 0.5, // Proportion of canvas width between hands (0 to 1)
+  HAND_SEPARATION_FACTOR: 0.2, // Proportion of canvas width between hands (0 to 1)
   HAND_OSCILLATION_X_RADIUS: 20,
   HAND_OSCILLATION_Y_RADIUS: 30,
   HAND_WIDTH: 40,
@@ -19,8 +20,9 @@ const ANIMATION_CONFIG = {
   BALL_COLOR_SATURATION: 90,
   BALL_COLOR_LIGHTNESS: 60,
   BALL_DEPTH_SCALE_FACTOR: 0.2,
-  THROW_HEIGHT_SCALE_FACTOR: 7,
-  PLANE_OFFSET: 80,
+  DEFAULT_BASE_HUE: 0,
+  DEFAULT_BALL_COLOR: '#ff0000',
+  THROW_HEIGHT_SCALE_FACTOR: 5,
 
   // Default UI values
   DEFAULT_BPM: 180,
@@ -87,6 +89,9 @@ export default function SiteswapAnimation() {
     inactiveBeatColor: ANIMATION_CONFIG.DEFAULT_INACTIVE_BEAT_COLOR,
     activeBeatBorderColor: ANIMATION_CONFIG.DEFAULT_ACTIVE_BEAT_BORDER_COLOR,
     showBeatIndicator: true,
+    useSingleColor: false,
+    baseHue: ANIMATION_CONFIG.DEFAULT_BASE_HUE,
+    singleBallColor: ANIMATION_CONFIG.DEFAULT_BALL_COLOR,
   });
 
   const animationState = useRef({
@@ -106,7 +111,9 @@ export default function SiteswapAnimation() {
   useEffect(() => {
     // This parser is just for calculating numBalls to update the UI.
     // The main animation's useEffect has its own parser instance.
-    const parseForNumBalls = (siteswapStr: string): { numBalls: number } | null => {
+    const parseForNumBalls = (
+      siteswapStr: string,
+    ): { numBalls: number } | null => {
       try {
         siteswapStr = siteswapStr.toLowerCase().replace(/\s/g, '');
         if (!siteswapStr) return null;
@@ -123,14 +130,20 @@ export default function SiteswapAnimation() {
           } else {
             const part = match[1];
             if (part.startsWith('[')) {
-              throws.push(part.substring(1, part.length - 1).split('').map(t => parseInt(t, 36)));
+              throws.push(
+                part
+                  .substring(1, part.length - 1)
+                  .split('')
+                  .map((t) => parseInt(t, 36)),
+              );
             } else {
               throws.push(parseInt(part, 36));
             }
           }
         }
         const sum = throws.flat().reduce((a, b) => a + b, 0);
-        if (sum === 0 || throws.length === 0 || sum % throws.length !== 0) return null;
+        if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
+          return null;
         return { numBalls: sum / throws.length };
       } catch {
         return null;
@@ -140,7 +153,7 @@ export default function SiteswapAnimation() {
     const result = parseForNumBalls(siteswap);
     if (result) {
       const newSeparation = Math.max(0.1, Math.min(result.numBalls / 10, 0.8));
-      setAnimParams(prev => ({ ...prev, handSeparation: newSeparation }));
+      setAnimParams((prev) => ({ ...prev, handSeparation: newSeparation }));
     }
   }, [siteswap]);
 
@@ -150,7 +163,13 @@ export default function SiteswapAnimation() {
 
     let animationFrameId: number;
 
-    const parseSiteswap = (siteswapStr: string): { pattern: (number | number[])[], numBalls: number, isSync: boolean } => {
+    const parseSiteswap = (
+      siteswapStr: string,
+    ): {
+      pattern: (number | number[])[];
+      numBalls: number;
+      isSync: boolean;
+    } => {
       siteswapStr = siteswapStr.toLowerCase().replace(/\s/g, '');
       if (!siteswapStr) throw new Error('Siteswap cannot be empty.');
 
@@ -187,7 +206,8 @@ export default function SiteswapAnimation() {
       }
 
       const sum = throws.flat().reduce((a, b) => a + b, 0);
-      if (sum === 0 || throws.length === 0 || sum % throws.length !== 0) throw new Error("Invalid siteswap pattern.");
+      if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
+        throw new Error('Invalid siteswap pattern.');
       const numBalls = sum / throws.length;
       return { pattern: throws, numBalls, isSync };
     };
@@ -211,9 +231,11 @@ export default function SiteswapAnimation() {
         state.elapsedTime = 0;
         state.lastTime = 0;
 
-        const handY = ANIMATION_CONFIG.CANVAS_HEIGHT - ANIMATION_CONFIG.HAND_Y_OFFSET;
+        const handY =
+          ANIMATION_CONFIG.CANVAS_HEIGHT - ANIMATION_CONFIG.HAND_Y_OFFSET;
         const centerX = ANIMATION_CONFIG.CANVAS_WIDTH / 2;
-        const handDist = (ANIMATION_CONFIG.CANVAS_WIDTH * animParams.handSeparation) / 2;
+        const handDist =
+          (ANIMATION_CONFIG.CANVAS_WIDTH * animParams.handSeparation) / 2;
         const leftHandX = centerX - handDist;
         const rightHandX = centerX + handDist;
 
@@ -265,11 +287,15 @@ export default function SiteswapAnimation() {
             endX: 0,
             flightDuration: 0,
             throwHeight: 0,
-            color: `hsl(${
-              (i * ANIMATION_CONFIG.BALL_COLOR_HUE_STEP) % 360
-            }, ${ANIMATION_CONFIG.BALL_COLOR_SATURATION}%, ${
-              ANIMATION_CONFIG.BALL_COLOR_LIGHTNESS
-            }%)`,
+            color: colorParams.useSingleColor
+              ? colorParams.singleBallColor
+              : `hsl(${
+                  (colorParams.baseHue +
+                    i * ANIMATION_CONFIG.BALL_COLOR_HUE_STEP) %
+                  360
+                }, ${ANIMATION_CONFIG.BALL_COLOR_SATURATION}%, ${
+                  ANIMATION_CONFIG.BALL_COLOR_LIGHTNESS
+                }%)`,
           };
           hand.heldBalls.push(ball);
           return ball;
@@ -278,17 +304,28 @@ export default function SiteswapAnimation() {
         if (isSync) {
           state.hands.forEach((hand) => {
             if (hand.heldBalls.length > 0) {
-              hand.nextThrowValue = state.pattern[hand.patternIndex % state.pattern.length];
+              hand.nextThrowValue =
+                state.pattern[hand.patternIndex % state.pattern.length];
               hand.nextThrowTime = 0;
               hand.patternIndex += 1;
             }
           });
         } else {
-          let beat = 0;
+          // Find the first non-zero throw to start the animation, skipping initial '0's.
+          let startBeat = 0;
+          while (
+            pattern[startBeat % pattern.length] === 0 &&
+            startBeat < pattern.length
+          ) {
+            startBeat++;
+          }
+
+          let beat = startBeat;
           for (let i = 0; i < numBalls; i++) {
             const hand = state.hands.find((h) => h.beat === beat % 2);
             if (hand && hand.heldBalls.length > 0) {
-              hand.nextThrowValue = state.pattern[hand.patternIndex % state.pattern.length];
+              hand.nextThrowValue =
+                state.pattern[hand.patternIndex % state.pattern.length];
               hand.nextThrowTime = beat * state.beatDuration;
               hand.patternIndex += 2;
             }
@@ -313,14 +350,13 @@ export default function SiteswapAnimation() {
           ? ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS
           : ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS;
 
-        const period = state.isSync ? state.beatDuration : 2 * state.beatDuration;
-        const phase = ((time % period) / period - hand.beat / 2) * Math.PI * 2 + Math.PI;
-        hand.x =
-          hand.baseX +
-          Math.sin(phase) * xRadius * hand.direction;
-        hand.y =
-          hand.baseY +
-          Math.cos(phase) * yRadius;
+        const period = state.isSync
+          ? state.beatDuration
+          : 2 * state.beatDuration;
+        const phase =
+          ((time % period) / period - hand.beat / 2) * Math.PI * 2 + Math.PI;
+        hand.x = hand.baseX + Math.sin(phase) * xRadius * hand.direction;
+        hand.y = hand.baseY + Math.cos(phase) * yRadius;
       });
 
       // Check for throws
@@ -331,12 +367,16 @@ export default function SiteswapAnimation() {
 
           const throwValue = hand.nextThrowValue;
           const useOuterPlane = hand.throwInOuterPlane;
-          const mainThrow = Array.isArray(throwValue) ? throwValue[0] : throwValue;
+          const mainThrow = Array.isArray(throwValue)
+            ? throwValue[0]
+            : throwValue;
 
           let landingHand: Hand;
           if (state.isSync) {
             const isCross = mainThrow % 2 !== 0;
-            landingHand = isCross ? state.hands.find((h) => h.id !== hand.id)! : hand;
+            landingHand = isCross
+              ? state.hands.find((h) => h.id !== hand.id)!
+              : hand;
           } else {
             const landingBeat = (hand.beat + mainThrow) % 2;
             landingHand = state.hands.find((h) => h.beat === landingBeat)!;
@@ -350,8 +390,10 @@ export default function SiteswapAnimation() {
           ball.endX = landingHand.baseX;
           ball.flightDuration = mainThrow * state.beatDuration;
           ball.throwHeight = Math.min(
-            ball.startY,
-            state.maxHeight * Math.pow(mainThrow / animParams.throwHeight, 2),
+            ball.startY - ANIMATION_CONFIG.BALL_RADIUS,
+            state.maxHeight *
+              Math.pow(mainThrow / 5, 2) *
+              (animParams.throwHeight / 5),
           );
 
           // The control point for the Bezier curve is offset to create separate planes
@@ -362,8 +404,10 @@ export default function SiteswapAnimation() {
             ball.controlX = planeOffset * hand.direction;
           }
 
-          hand.nextThrowTime = time + (state.isSync ? state.beatDuration : 2 * state.beatDuration);
-          hand.nextThrowValue = state.pattern[hand.patternIndex % state.pattern.length];
+          hand.nextThrowTime =
+            time + (state.isSync ? state.beatDuration : 2 * state.beatDuration);
+          hand.nextThrowValue =
+            state.pattern[hand.patternIndex % state.pattern.length];
           hand.throwInOuterPlane = !useOuterPlane;
           hand.patternIndex += state.isSync ? 1 : 2;
         }
@@ -389,22 +433,31 @@ export default function SiteswapAnimation() {
               const p0x = ball.startX; // Start
               const p1x = ball.controlX!; // Bezier control for plane separation
               const p2x = ball.endX; // End
-              ball.x = (1 - horizontalProgress) * (1 - horizontalProgress) * p0x + 2 * (1 - horizontalProgress) * horizontalProgress * p1x + horizontalProgress * horizontalProgress * p2x;
+              ball.x =
+                (1 - horizontalProgress) * (1 - horizontalProgress) * p0x +
+                2 * (1 - horizontalProgress) * horizontalProgress * p1x +
+                horizontalProgress * horizontalProgress * p2x;
             } else {
               // For same-hand throws (fountains), create a simple outward arc.
-              ball.x = ball.startX + Math.sin(progress * Math.PI) * ball.controlX!;
+              ball.x =
+                ball.startX + Math.sin(progress * Math.PI) * ball.controlX!;
             }
 
             // For a "1" throw (shower pass), use a very low, gentle arc.
             // For all other throws, use the standard parabolic arc.
             if (ball.currentThrow === 1 && ball.isCrossingThrow) {
-              ball.y = ball.startY - ball.throwHeight * 0.5 * Math.sin(progress * Math.PI);
+              ball.y =
+                ball.startY -
+                ball.throwHeight * 0.5 * Math.sin(progress * Math.PI);
             } else {
-              ball.y = ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
+              ball.y =
+                ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
             }
           }
         } else {
-          const holdingHand = state.hands.find((h) => h.heldBalls.includes(ball));
+          const holdingHand = state.hands.find((h) =>
+            h.heldBalls.includes(ball),
+          );
           if (holdingHand) {
             ball.x = holdingHand.x;
             ball.y = holdingHand.y;
@@ -415,14 +468,19 @@ export default function SiteswapAnimation() {
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
-      const { balls, hands, elapsedTime, beatDuration, isSync } = animationState.current;
+      const { balls, hands, elapsedTime, beatDuration, isSync } =
+        animationState.current;
 
       const currentBeat = Math.floor(elapsedTime / beatDuration);
 
       hands.forEach((hand) => {
-        const isActive = colorParams.showBeatIndicator && (isSync || currentBeat % 2 === hand.beat);
+        const isActive =
+          colorParams.showBeatIndicator &&
+          (isSync || currentBeat % 2 === hand.beat);
 
-        ctx.fillStyle = isActive ? colorParams.activeBeatColor : colorParams.inactiveBeatColor;
+        ctx.fillStyle = isActive
+          ? colorParams.activeBeatColor
+          : colorParams.inactiveBeatColor;
         ctx.fillRect(
           hand.x - ANIMATION_CONFIG.HAND_WIDTH / 2,
           hand.y - ANIMATION_CONFIG.HAND_HEIGHT / 2,
@@ -453,7 +511,8 @@ export default function SiteswapAnimation() {
 
     const animationLoop = (currentTime: number) => {
       const state = animationState.current;
-      const deltaTime = state.lastTime > 0 ? currentTime - state.lastTime : 16.67;
+      const deltaTime =
+        state.lastTime > 0 ? currentTime - state.lastTime : 16.67;
       state.lastTime = currentTime;
 
       if (isRunning) {
@@ -484,7 +543,8 @@ export default function SiteswapAnimation() {
         alignItems: 'center',
         backgroundColor: '#1a1a1a',
         color: '#e0e0e0',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         padding: '20px',
         minHeight: '100vh',
       }}
@@ -500,28 +560,50 @@ export default function SiteswapAnimation() {
           border: '1px solid #444',
         }}
       ></canvas>
-      <div style={{ color: '#ff4d4d', marginTop: '10px', height: '20px', fontWeight: 'bold' }}>
-        {error}
-      </div>
       <div
         style={{
+          color: '#ff4d4d',
+          marginTop: '10px',
+          height: '20px',
+          fontWeight: 'bold',
+        }}
+      >
+        {error}
+      </div>
+      <Widget
+        widget='siteswap'
+        style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
           gap: '15px',
           marginTop: '20px',
           padding: '15px',
+          flexDirection: 'row',
+          justifyContent: 'space-around',
           backgroundColor: '#2a2a2a',
           borderRadius: '8px',
           width: '100%',
-          maxWidth: '600px',
+          maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
         }}
       >
+        <button
+          onClick={() => setIsRunning(!isRunning)}
+          style={{
+            backgroundColor: '#007acc',
+            border: 'none',
+            color: 'white',
+            padding: '8px 15px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          {isRunning ? 'Pause' : 'Play'}
+        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label htmlFor="siteswap-input">Siteswap:</label>
+          <label htmlFor='siteswap-input'>Siteswap:</label>
           <input
-            id="siteswap-input"
-            type="text"
+            id='siteswap-input'
+            type='text'
             value={siteswap}
             onChange={(e) => setSiteswap(e.target.value)}
             style={{
@@ -534,30 +616,16 @@ export default function SiteswapAnimation() {
               textAlign: 'center',
             }}
           />
-          <button
-            onClick={() => setIsRunning(!isRunning)}
-            style={{
-              backgroundColor: '#007acc',
-              border: 'none',
-              color: 'white',
-              padding: '8px 15px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-            }}
-          >
-            {isRunning ? 'Pause' : 'Play'}
-          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label htmlFor="bpm-input">BPM:</label>
+          <label htmlFor='bpm-input'>BPM:</label>
           <input
-            id="bpm-input"
-            type="number"
+            id='bpm-input'
+            type='number'
             value={bpm}
             onChange={(e) => setBpm(parseInt(e.target.value, 10))}
-            min="30"
-            max="300"
+            min='30'
+            max='300'
             style={{
               backgroundColor: '#333',
               border: '1px solid #444',
@@ -569,127 +637,341 @@ export default function SiteswapAnimation() {
             }}
           />
         </div>
-      </div>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: '10px',
+            marginTop: '10px',
+            backgroundColor: '#2a2a2a',
+            borderRadius: '8px',
+            padding: '10px',
+            width: '100%',
+            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          }}
+        >
+          {[
+            '3',
+            '4',
+            '5',
+            '7',
+            '9',
+            '441',
+            '531',
+            '51',
+            '71',
+            '91',
+            '(4,4)',
+            '(6,6)',
+            '(6x,4)',
+            '[34]2',
+          ].map((preset) => (
+            <button
+              key={preset}
+              onClick={() => setSiteswap(preset)}
+              style={{
+                backgroundColor: '#3a3a3a',
+                border: '1px solid #444',
+                color: '#e0e0e0',
+                padding: '5px 10px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+      </Widget>
       <div
         style={{
           display: 'flex',
+          flexDirection: 'row',
           flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: '10px',
-          marginTop: '10px',
-          padding: '10px',
           width: '100%',
-          maxWidth: '600px',
+          maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          justifyContent: 'center',
         }}
       >
-        {[
-          '3', '4', '5', '441', '531', '51', '71',
-          '(4,4)', '(6x,4)', '[34]2'
-        ].map((preset) => (
-          <button
-            key={preset}
-            onClick={() => setSiteswap(preset)}
+        <Widget<WidgetType>
+          widget='ballColor'
+          style={{
+            backgroundColor: '#2a2a2a',
+            borderRadius: '8px',
+            width: '40%',
+            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          }}
+        >
+          <h3 style={{ margin: 0, textAlign: 'center' }}>Ball Parameters</h3>
+          <div
             style={{
-              backgroundColor: '#3a3a3a',
-              border: '1px solid #444',
-              color: '#e0e0e0',
-              padding: '5px 10px',
-              borderRadius: '4px',
-              cursor: 'pointer',
+              display: 'flex',
+              gap: '10px',
             }}
           >
-            {preset}
-          </button>
-        ))}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '15px',
-          marginTop: '10px',
-          padding: '15px',
-          backgroundColor: '#2a2a2a',
-          borderRadius: '8px',
-          width: '100%',
-          maxWidth: '600px',
-        }}
-      >
-        <h3 style={{ margin: 0, textAlign: 'center' }}>Animation Parameters</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-          <label htmlFor="hand-separation-slider" style={{ flexBasis: '120px' }}>Hand Separation:</label>
-          <input
-            id="hand-separation-slider"
-            type="range"
-            min="0.1"
-            max="0.8"
-            step="0.01"
-            value={animParams.handSeparation}
-            onChange={(e) =>
-              setAnimParams((prev) => ({
-                ...prev,
-                handSeparation: parseFloat(e.target.value),
-              }))
-            }
-            style={{ flexGrow: 1 }}
-          />
-          <span>{animParams.handSeparation.toFixed(2)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-          <label htmlFor="throw-height-slider" style={{ flexBasis: '120px' }}>Throw Height:</label>
-          <input
-            id="throw-height-slider"
-            type="range"
-            min="1"
-            max="10"
-            step="0.1"
-            value={animParams.throwHeight}
-            onChange={(e) =>
-              setAnimParams((prev) => ({
-                ...prev,
-                throwHeight: parseFloat(e.target.value),
-              }))
-            }
-            style={{ flexGrow: 1 }}
-          />
-          <span>{animParams.throwHeight.toFixed(1)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-          <label htmlFor="active-color-picker" style={{ flexBasis: '120px' }}>Active Color:</label>
-          <input
-            id="active-color-picker"
-            type="color"
-            value={colorParams.activeBeatColor}
-            onChange={(e) => setColorParams(prev => ({ ...prev, activeBeatColor: e.target.value }))}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-          <label htmlFor="inactive-color-picker" style={{ flexBasis: '120px' }}>Inactive Color:</label>
-          <input
-            id="inactive-color-picker"
-            type="color"
-            value={colorParams.inactiveBeatColor}
-            onChange={(e) => setColorParams(prev => ({ ...prev, inactiveBeatColor: e.target.value }))}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-          <label htmlFor="border-color-picker" style={{ flexBasis: '120px' }}>Border Color:</label>
-          <input
-            id="border-color-picker"
-            type="color"
-            value={colorParams.activeBeatBorderColor}
-            onChange={(e) => setColorParams(prev => ({ ...prev, activeBeatBorderColor: e.target.value }))}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-            <label htmlFor="beat-indicator-toggle" style={{ flexBasis: '120px' }}>Show Beat Indicator:</label>
+            <label htmlFor='single-color-toggle' style={{ flexBasis: '120px' }}>
+              Single Ball Color:
+            </label>
             <input
-              id="beat-indicator-toggle"
-              type="checkbox"
-              checked={colorParams.showBeatIndicator}
-              onChange={(e) => setColorParams(prev => ({ ...prev, showBeatIndicator: e.target.checked }))}
+              id='single-color-toggle'
+              type='checkbox'
+              checked={colorParams.useSingleColor}
+              onChange={(e) =>
+                setColorParams((prev) => ({
+                  ...prev,
+                  useSingleColor: e.target.checked,
+                }))
+              }
             />
-        </div>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+            }}
+          >
+            {colorParams.useSingleColor ? (
+              <>
+                <label
+                  htmlFor='ball-color-picker'
+                  style={{ flexBasis: '120px' }}
+                >
+                  Ball Color:
+                </label>
+                <input
+                  id='ball-color-picker'
+                  type='color'
+                  value={colorParams.singleBallColor}
+                  onChange={(e) =>
+                    setColorParams((prev) => ({
+                      ...prev,
+                      singleBallColor: e.target.value,
+                    }))
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <label htmlFor='base-hue-slider' style={{ flexBasis: '120px' }}>
+                  Base Hue:
+                </label>
+                <input
+                  id='base-hue-slider'
+                  type='range'
+                  min='0'
+                  max='360'
+                  value={colorParams.baseHue}
+                  onChange={(e) =>
+                    setColorParams((prev) => ({
+                      ...prev,
+                      baseHue: parseInt(e.target.value, 10),
+                    }))
+                  }
+                  style={{ flexGrow: 1 }}
+                />
+                <span>{colorParams.baseHue}</span>
+              </>
+            )}
+          </div>
+        </Widget>
+        <Widget<WidgetType>
+          widget='animation'
+          backgroundColor='#2a2a2a'
+          style={{
+            flexGrow: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px',
+            marginTop: '10px',
+            padding: '15px',
+            backgroundColor: '#2a2a2a',
+            borderRadius: '8px',
+            width: '40%',
+            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          }}
+        >
+          <h3 style={{ margin: 0, textAlign: 'center' }}>
+            Animation Parameters
+          </h3>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              justifyContent: 'center',
+            }}
+          >
+            <label
+              htmlFor='hand-separation-slider'
+              style={{ flexBasis: '120px' }}
+            >
+              Hand Separation:
+            </label>
+            <input
+              id='hand-separation-slider'
+              type='range'
+              min='0.1'
+              max='0.8'
+              step='0.01'
+              value={animParams.handSeparation}
+              onChange={(e) =>
+                setAnimParams((prev) => ({
+                  ...prev,
+                  handSeparation: parseFloat(e.target.value),
+                }))
+              }
+              style={{ flexGrow: 1 }}
+            />
+            <span>{animParams.handSeparation.toFixed(2)}</span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              justifyContent: 'center',
+            }}
+          >
+            <label htmlFor='throw-height-slider' style={{ flexBasis: '120px' }}>
+              Throw Height:
+            </label>
+            <input
+              id='throw-height-slider'
+              type='range'
+              min='1'
+              max='5'
+              step='0.1'
+              value={animParams.throwHeight}
+              onChange={(e) =>
+                setAnimParams((prev) => ({
+                  ...prev,
+                  throwHeight: parseFloat(e.target.value),
+                }))
+              }
+              style={{ flexGrow: 1 }}
+            />
+            <span>{animParams.throwHeight.toFixed(1)}</span>
+          </div>
+        </Widget>
+        <Widget<WidgetType>
+          widget='siteswap'
+          backgroundColor='#2a2a2a'
+          style={{
+            flexGrow: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: '#2a2a2a',
+            borderRadius: '8px',
+            width: '40%',
+            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          }}
+        >
+          <h3 style={{ margin: 0, textAlign: 'center' }}>Hand Parameters</h3>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '10px',
+              padding: '15px',
+              justifyContent: 'space-around',
+            }}
+          >
+            <div
+              style={{
+                flexDirection: 'column',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+              }}
+            >
+              <label htmlFor='active-color-picker'>Active Color:</label>
+              <input
+                id='active-color-picker'
+                type='color'
+                style={{ width: '100%' }}
+                value={colorParams.activeBeatColor}
+                onChange={(e) =>
+                  setColorParams((prev) => ({
+                    ...prev,
+                    activeBeatColor: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '10px',
+                justifyContent: 'center',
+              }}
+            >
+              <label htmlFor='inactive-color-picker'>Inactive Color:</label>
+              <input
+                id='inactive-color-picker'
+                type='color'
+                style={{ width: '100%' }}
+                value={colorParams.inactiveBeatColor}
+                onChange={(e) =>
+                  setColorParams((prev) => ({
+                    ...prev,
+                    inactiveBeatColor: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '10px',
+                justifyContent: 'center',
+              }}
+            >
+              <label htmlFor='border-color-picker'>Border Color:</label>
+              <input
+                id='border-color-picker'
+                type='color'
+                style={{ width: '100%' }}
+                value={colorParams.activeBeatBorderColor}
+                onChange={(e) =>
+                  setColorParams((prev) => ({
+                    ...prev,
+                    activeBeatBorderColor: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '10px',
+                justifyContent: 'center',
+              }}
+            >
+              <label htmlFor='beat-indicator-toggle'>
+                Show Beat Indicator:
+              </label>
+              <input
+                id='beat-indicator-toggle'
+                type='checkbox'
+                checked={colorParams.showBeatIndicator}
+                onChange={(e) =>
+                  setColorParams((prev) => ({
+                    ...prev,
+                    showBeatIndicator: e.target.checked,
+                  }))
+                }
+              />
+            </div>
+          </div>
+        </Widget>
       </div>
     </div>
   );

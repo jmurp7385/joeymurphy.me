@@ -39,18 +39,22 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
       if (endIndex === -1)
         throw new Error('Mismatched parentheses in sync pattern.');
       const content = remainingString.slice(1, endIndex).split(',');
-      const leftThrow = content[0];
-      const rightThrow = content[1];
+      const leftThrow = content[0].trim();
+      const rightThrow = content[1].trim();
       const leftValue = Number.parseInt(leftThrow.replace('x', ''), 36);
       const rightValue = Number.parseInt(rightThrow.replace('x', ''), 36);
-      const leftIsCross = leftValue % 2 !== 0 || leftThrow.includes('x');
-      const rightIsCross = rightValue % 2 !== 0 || rightThrow.includes('x');
+      const leftIsCross = leftThrow.includes('x') || leftValue % 2 !== 0;
+      const rightIsCross = rightThrow.includes('x') || rightValue % 2 !== 0;
+
       if (leftIsCross !== rightIsCross)
         throw new Error(
           'Invalid sync pattern: throws must have the same landing hand (both crossing or both not crossing).',
         );
-      throws.push({ value: leftValue, isCrossing: leftIsCross }, { value: rightValue, isCrossing: rightIsCross });
-      remainingString = remainingString.substring(endIndex + 1);
+      throws.push(
+        { value: leftValue, isCrossing: leftIsCross },
+        { value: rightValue, isCrossing: rightIsCross },
+      );
+      remainingString = remainingString.slice(Math.max(0, endIndex + 1));
     } else if (remainingString.startsWith('[')) {
       const endIndex = remainingString.indexOf(']');
       if (endIndex === -1)
@@ -62,12 +66,12 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
           return { value, isCrossing: value % 2 !== 0 } as Throw;
         }),
       );
-      remainingString = remainingString.substring(endIndex + 1);
+      remainingString = remainingString.slice(Math.max(0, endIndex + 1));
     } else {
       const char = remainingString[0];
       const value = Number.parseInt(char, 36);
       throws.push({ value, isCrossing: value % 2 !== 0 });
-      remainingString = remainingString.substring(1);
+      remainingString = remainingString.slice(1);
     }
   }
 

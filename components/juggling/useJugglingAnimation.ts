@@ -169,11 +169,10 @@ export const useJugglingAnimation = ({
         // --- Initial Throw Scheduling ---
         if (isSync) {
           for (const hand of state.hands) {
-            // Schedule initial throws for sync patterns
             hand.nextThrowValue =
               state.pattern[hand.patternIndex % state.pattern.length];
-            hand.nextThrowTime = hand.beat * state.beatDuration;
-            hand.patternIndex += 1;
+            hand.nextThrowTime = 0; // Both hands throw at the start
+            hand.patternIndex += 2;
           }
         } else {
           let startBeat = 0;
@@ -213,9 +212,7 @@ export const useJugglingAnimation = ({
         const yRadius = state.isFountain
           ? ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS
           : ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS;
-        const period = state.isSync
-          ? state.beatDuration
-          : 2 * state.beatDuration;
+        const period = 2 * state.beatDuration;
         const phase =
           ((time % period) / period - hand.beat / 2) * Math.PI * 2 + Math.PI;
         hand.x = hand.baseX + Math.sin(phase) * xRadius * hand.direction;
@@ -238,7 +235,7 @@ export const useJugglingAnimation = ({
             let isCross: boolean;
 
             if (state.isSync) {
-              isCross = isThrow(throwValue) ? throwValue.isCrossing : false;
+              isCross = isThrow(currentThrow) ? currentThrow.isCrossing : false;
               landingHand = isCross
                 ? state.hands.find((h) => h.id !== hand.id)!
                 : hand;
@@ -255,8 +252,11 @@ export const useJugglingAnimation = ({
             ball.startY = hand.y;
             ball.endX = landingHand.baseX;
             ball.flightDuration = isThrow(currentThrow)
-              ? currentThrow.value * state.beatDuration
+              ? (currentThrow.value - ANIMATION_CONFIG.DWELL_FACTOR) *
+                state.beatDuration
               : 0;
+            ball.currentThrow = isThrow(currentThrow) ? currentThrow.value : 0;
+
             const calculatedHeight =
               state.maxHeight *
               Math.pow(
@@ -280,12 +280,9 @@ export const useJugglingAnimation = ({
             }
           }
 
-          if (state.isSync) {
-            const currentBeat = Math.floor(time / state.beatDuration);
-            hand.nextThrowTime = (currentBeat + 1) * state.beatDuration;
-          } else {
-            hand.nextThrowTime = time + 2 * state.beatDuration;
-          }
+          hand.nextThrowTime = state.isSync
+            ? hand.nextThrowTime + state.beatDuration
+            : time + 2 * state.beatDuration;
           hand.nextThrowValue =
             state.pattern[hand.patternIndex % state.pattern.length];
           hand.patternIndex += 2;
@@ -318,11 +315,7 @@ export const useJugglingAnimation = ({
                 ball.startX + Math.sin(progress * Math.PI) * ball.controlX;
             }
             ball.y =
-              ball.currentThrow === 1 && ball.isCrossingThrow
-                ? ball.startY -
-                  ball.throwHeight * 0.5 * Math.sin(progress * Math.PI)
-                : ball.startY -
-                  ball.throwHeight * 4 * progress * (1 - progress);
+              ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
           }
         } else {
           const holdingHand = state.hands.find((h) =>

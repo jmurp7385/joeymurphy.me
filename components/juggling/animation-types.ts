@@ -61,6 +61,7 @@ export const ANIMATION_CONFIG = {
   DEFAULT_BASE_HUE: 0,
   DEFAULT_BALL_COLOR: '#ff0000',
   THROW_HEIGHT_SCALE_FACTOR: 5,
+  DWELL_FACTOR: 0.5, // Portion of a beat a ball is held
 
   // Default UI values
   DEFAULT_BPM: 180,

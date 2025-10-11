@@ -172,7 +172,7 @@ export default function SiteswapAnimation() {
             '(4,4)',
             '(6,6)',
             '(8,8)',
-            '(6x,4)',
+            '(6x,4x)',
             '[34]1',
           ].map((preset) => (
             <button

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Widget } from '../Widget';
 type WidgetType = 'ball' | 'siteswap' | 'animation' | 'hand';
+
 const ANIMATION_CONFIG = {
-  // Canvas dimensions
-  CANVAS_WIDTH: window.innerWidth * 0.8,
-  CANVAS_HEIGHT: window.innerHeight * 0.5,
+  WIDTH: 800,
+  HEIGHT: 400,
 
   // Hand properties
   HAND_Y_OFFSET: 50,
@@ -77,6 +77,10 @@ export interface Hand {
 export default function SiteswapAnimation() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [siteswap, setSiteswap] = useState(ANIMATION_CONFIG.DEFAULT_SITESWAP);
+  const [dimensions, setDimensions] = useState({
+    width: ANIMATION_CONFIG.WIDTH,
+    height: ANIMATION_CONFIG.HEIGHT,
+  });
   const [bpm, setBpm] = useState(ANIMATION_CONFIG.DEFAULT_BPM);
   const [isRunning, setIsRunning] = useState(true);
   const [error, setError] = useState('');
@@ -102,7 +106,7 @@ export default function SiteswapAnimation() {
     isSync: false,
     isFountain: false,
     beatDuration: 60000 / ANIMATION_CONFIG.DEFAULT_BPM,
-    maxHeight: ANIMATION_CONFIG.CANVAS_HEIGHT * 0.8,
+    maxHeight: dimensions.height * 0.7,
     elapsedTime: 0,
     lastTime: 0,
   });
@@ -152,10 +156,31 @@ export default function SiteswapAnimation() {
 
     const result = parseForNumBalls(siteswap);
     if (result) {
-      const newSeparation = Math.max(0.1, Math.min(result.numBalls / 10, 0.8));
+      const newSeparation = Math.max(
+        0.1,
+        Math.min(result.numBalls / (result.numBalls > 5 ? 20 : 10), 0.8),
+      );
       setAnimParams((prev) => ({ ...prev, handSeparation: newSeparation }));
     }
   }, [siteswap]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth * 0.8,
+        height: window.innerHeight * 0.5,
+      });
+      animationState.current.maxHeight = window.innerHeight * 0.5;
+    };
+    handleResize(); // Set initial size
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Update maxHeight in animation state when dimensions change
+    animationState.current.maxHeight = dimensions.height * 0.8;
+  }, [dimensions]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
@@ -231,11 +256,9 @@ export default function SiteswapAnimation() {
         state.elapsedTime = 0;
         state.lastTime = 0;
 
-        const handY =
-          ANIMATION_CONFIG.CANVAS_HEIGHT - ANIMATION_CONFIG.HAND_Y_OFFSET;
-        const centerX = ANIMATION_CONFIG.CANVAS_WIDTH / 2;
-        const handDist =
-          (ANIMATION_CONFIG.CANVAS_WIDTH * animParams.handSeparation) / 2;
+        const handY = dimensions.height - ANIMATION_CONFIG.HAND_Y_OFFSET;
+        const centerX = dimensions.width / 2;
+        const handDist = (dimensions.width * animParams.handSeparation) / 2;
         const leftHandX = centerX - handDist;
         const rightHandX = centerX + handDist;
 
@@ -389,11 +412,14 @@ export default function SiteswapAnimation() {
           ball.startY = hand.y;
           ball.endX = landingHand.baseX;
           ball.flightDuration = mainThrow * state.beatDuration;
-          ball.throwHeight = Math.min(
-            ball.startY - ANIMATION_CONFIG.BALL_RADIUS,
+          const calculatedHeight =
             state.maxHeight *
-              Math.pow(mainThrow / 5, 2) *
-              (animParams.throwHeight / 5),
+            Math.pow(mainThrow / 5, 2) *
+            (animParams.throwHeight / 5);
+          ball.throwHeight = Math.min(
+            calculatedHeight,
+            // ensure ball height padding of 3 ball radii
+            ball.startY - ANIMATION_CONFIG.BALL_RADIUS * 3,
           );
 
           // The control point for the Bezier curve is offset to create separate planes
@@ -532,8 +558,7 @@ export default function SiteswapAnimation() {
     };
   }, [siteswap, bpm, isRunning, animParams, colorParams]);
 
-  const width = ANIMATION_CONFIG.CANVAS_WIDTH;
-  const height = ANIMATION_CONFIG.CANVAS_HEIGHT;
+  const { width, height } = dimensions;
 
   return (
     <div
@@ -582,7 +607,7 @@ export default function SiteswapAnimation() {
           backgroundColor: '#2a2a2a',
           borderRadius: '8px',
           width: '100%',
-          maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          maxWidth: width,
         }}
       >
         <button
@@ -648,7 +673,7 @@ export default function SiteswapAnimation() {
             borderRadius: '8px',
             padding: '10px',
             width: '100%',
-            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+            maxWidth: width,
           }}
         >
           {[
@@ -690,7 +715,7 @@ export default function SiteswapAnimation() {
           flexDirection: 'row',
           flexWrap: 'wrap',
           width: '100%',
-          maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+          maxWidth: width,
           justifyContent: 'center',
         }}
       >
@@ -700,7 +725,7 @@ export default function SiteswapAnimation() {
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
             width: '40%',
-            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+            maxWidth: width,
           }}
         >
           <h3 style={{ margin: 0, textAlign: 'center' }}>Ball Parameters</h3>
@@ -788,7 +813,7 @@ export default function SiteswapAnimation() {
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
             width: '40%',
-            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+            maxWidth: width,
           }}
         >
           <h3 style={{ margin: 0, textAlign: 'center' }}>
@@ -864,7 +889,7 @@ export default function SiteswapAnimation() {
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
             width: '40%',
-            maxWidth: ANIMATION_CONFIG.CANVAS_WIDTH,
+            maxWidth: width,
           }}
         >
           <h3 style={{ margin: 0, textAlign: 'center' }}>Hand Parameters</h3>

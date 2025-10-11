@@ -8,8 +8,8 @@ import styles from './Breadcrumbs.module.css';
  * @param str
  * @returns
  */
-export function transformLabelHuman(str: string): string {
-  return str
+export function transformLabelHuman(string_: string): string {
+  return string_
     .replace('-', ' ')
     .replaceAll(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
 }

@@ -1,8 +1,8 @@
-import { Icon } from '@iconify/react';
-import instagramIcon from '@iconify-icons/cib/instagram';
-import youtubeIcon from '@iconify-icons/cib/youtube';
 import githubIcon from '@iconify-icons/cib/github';
+import instagramIcon from '@iconify-icons/cib/instagram';
 import linkedinIcon from '@iconify-icons/cib/linkedin';
+import youtubeIcon from '@iconify-icons/cib/youtube';
+import { Icon } from '@iconify/react';
 import styles from '../styles/Footer.module.css';
 
 function Footer() {

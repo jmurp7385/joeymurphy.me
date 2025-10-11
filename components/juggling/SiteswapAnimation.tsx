@@ -105,7 +105,7 @@ export default function SiteswapAnimation() {
     numBalls: 3,
     isSync: false,
     isFountain: false,
-    beatDuration: 60000 / ANIMATION_CONFIG.DEFAULT_BPM,
+    beatDuration: 60_000 / ANIMATION_CONFIG.DEFAULT_BPM,
     maxHeight: dimensions.height * 0.7,
     elapsedTime: 0,
     lastTime: 0,
@@ -115,52 +115,49 @@ export default function SiteswapAnimation() {
   useEffect(() => {
     // This parser is just for calculating numBalls to update the UI.
     // The main animation's useEffect has its own parser instance.
-    const parseForNumBalls = (
-      siteswapStr: string,
-    ): { numBalls: number } | null => {
+    const parseForNumberBalls = (
+      siteswapString: string,
+    ): { numBalls: number } | undefined => {
       try {
-        siteswapStr = siteswapStr.toLowerCase().replace(/\s/g, '');
-        if (!siteswapStr) return null;
+        siteswapString = siteswapString.toLowerCase().replaceAll(/\s/g, '');
+        if (!siteswapString) return undefined;
 
-        const isSync = siteswapStr.includes('(');
+        const isSync = siteswapString.includes('(');
         const pattern = isSync ? /\((\w+),(\w+)\)/g : /(\[[\da-z]+\]|[\da-z])/g;
 
-        let throws: (number | number[])[] = [];
+        const throws: (number | number[])[] = [];
         let match;
-        while ((match = pattern.exec(siteswapStr)) !== null) {
+        while ((match = pattern.exec(siteswapString)) !== null) {
           if (isSync) {
-            throws.push(parseInt(match[1].replace('x', ''), 36));
-            throws.push(parseInt(match[2].replace('x', ''), 36));
+            throws.push(Number.parseInt(match[1].replace('x', ''), 36),Number.parseInt(match[2].replace('x', ''), 36));
           } else {
             const part = match[1];
             if (part.startsWith('[')) {
               throws.push(
-                part
-                  .substring(1, part.length - 1)
-                  .split('')
-                  .map((t) => parseInt(t, 36)),
+                [...part]
+                  .map((t) => Number.parseInt(t, 36)),
               );
             } else {
-              throws.push(parseInt(part, 36));
+              throws.push(Number.parseInt(part, 36));
             }
           }
         }
         const sum = throws.flat().reduce((a, b) => a + b, 0);
         if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
-          return null;
+          return undefined;
         return { numBalls: sum / throws.length };
       } catch {
-        return null;
+        return undefined;
       }
     };
 
-    const result = parseForNumBalls(siteswap);
+    const result = parseForNumberBalls(siteswap);
     if (result) {
       const newSeparation = Math.max(
         0.1,
         Math.min(result.numBalls / (result.numBalls > 5 ? 20 : 10), 0.8),
       );
-      setAnimParams((prev) => ({ ...prev, handSeparation: newSeparation }));
+      setAnimParams((previous) => ({ ...previous, handSeparation: newSeparation }));
     }
   }, [siteswap]);
 
@@ -182,50 +179,49 @@ export default function SiteswapAnimation() {
     animationState.current.maxHeight = dimensions.height * 0.8;
   }, [dimensions]);
 
+  const { width, height } = dimensions;
+
   useEffect(() => {
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
+    const context = canvasRef.current?.getContext('2d');
+    if (!context) return;
 
     let animationFrameId: number;
 
     const parseSiteswap = (
-      siteswapStr: string,
+      siteswapString: string,
     ): {
       pattern: (number | number[])[];
       numBalls: number;
       isSync: boolean;
     } => {
-      siteswapStr = siteswapStr.toLowerCase().replace(/\s/g, '');
-      if (!siteswapStr) throw new Error('Siteswap cannot be empty.');
+      siteswapString = siteswapString.toLowerCase().replaceAll(/\s/g, '');
+      if (!siteswapString) throw new Error('Siteswap cannot be empty.');
 
-      const isSync = siteswapStr.includes('(');
-      let throws: (number | number[])[] = [];
+      const isSync = siteswapString.includes('(');
+      const throws: (number | number[])[] = [];
 
       if (isSync) {
         const syncPattern = /\((\w+),(\w+)\)/g;
         let match;
-        while ((match = syncPattern.exec(siteswapStr)) !== null) {
+        while ((match = syncPattern.exec(siteswapString)) !== null) {
           const leftThrow = match[1].replace('x', '');
           const rightThrow = match[2].replace('x', '');
-          throws.push(parseInt(leftThrow, 36));
-          throws.push(parseInt(rightThrow, 36));
+          throws.push(Number.parseInt(leftThrow, 36),Number.parseInt(rightThrow, 36));
         }
         if (throws.length === 0)
           throw new Error('Invalid sync siteswap format.');
       } else {
         const asyncPattern = /(\[[\da-z]+\]|[\da-z])/g;
         let match;
-        while ((match = asyncPattern.exec(siteswapStr)) !== null) {
+        while ((match = asyncPattern.exec(siteswapString)) !== null) {
           const part = match[1];
           if (part.startsWith('[')) {
             throws.push(
-              part
-                .substring(1, part.length - 1)
-                .split('')
-                .map((t) => parseInt(t, 36)),
+              [...part]
+                .map((t) => Number.parseInt(t, 36)),
             );
           } else {
-            throws.push(parseInt(part, 36));
+            throws.push(Number.parseInt(part, 36));
           }
         }
       }
@@ -233,8 +229,8 @@ export default function SiteswapAnimation() {
       const sum = throws.flat().reduce((a, b) => a + b, 0);
       if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
         throw new Error('Invalid siteswap pattern.');
-      const numBalls = sum / throws.length;
-      return { pattern: throws, numBalls, isSync };
+      const numberBalls = sum / throws.length;
+      return { pattern: throws, numBalls: numberBalls, isSync };
     };
 
     const resetAnimation = (newSiteswap: string, newBpm: number) => {
@@ -245,12 +241,12 @@ export default function SiteswapAnimation() {
         state.pattern = pattern;
         state.numBalls = numBalls;
         state.isSync = isSync;
-        state.beatDuration = 60000 / newBpm;
-        state.isFountain = pattern.every((throwVal) => {
-          if (Array.isArray(throwVal)) {
-            return throwVal.every((t) => t > 0 && t % 2 === 0);
+        state.beatDuration = 60_000 / newBpm;
+        state.isFountain = pattern.every((throwValue) => {
+          if (Array.isArray(throwValue)) {
+            return throwValue.every((t) => t > 0 && t % 2 === 0);
           }
-          return throwVal > 0 && throwVal % 2 === 0;
+          return throwValue > 0 && throwValue % 2 === 0;
         });
 
         state.elapsedTime = 0;
@@ -258,9 +254,9 @@ export default function SiteswapAnimation() {
 
         const handY = dimensions.height - ANIMATION_CONFIG.HAND_Y_OFFSET;
         const centerX = dimensions.width / 2;
-        const handDist = (dimensions.width * animParams.handSeparation) / 2;
-        const leftHandX = centerX - handDist;
-        const rightHandX = centerX + handDist;
+        const handDistribution = (dimensions.width * animParams.handSeparation) / 2;
+        const leftHandX = centerX - handDistribution;
+        const rightHandX = centerX + handDistribution;
 
         state.hands = [
           {
@@ -293,10 +289,10 @@ export default function SiteswapAnimation() {
           },
         ];
 
-        state.balls = Array.from({ length: numBalls }, (v, i) => {
-          const hand = state.hands[i % 2];
+        state.balls = Array.from({ length: numBalls }, (v, index) => {
+          const hand = state.hands[index % 2];
           const ball: Ball = {
-            id: i,
+            id: index,
             x: hand.x,
             y: hand.y,
             inAir: false,
@@ -314,7 +310,7 @@ export default function SiteswapAnimation() {
               ? colorParams.singleBallColor
               : `hsl(${
                   (colorParams.baseHue +
-                    i * ANIMATION_CONFIG.BALL_COLOR_HUE_STEP) %
+                    index * ANIMATION_CONFIG.BALL_COLOR_HUE_STEP) %
                   360
                 }, ${ANIMATION_CONFIG.BALL_COLOR_SATURATION}%, ${
                   ANIMATION_CONFIG.BALL_COLOR_LIGHTNESS
@@ -325,14 +321,14 @@ export default function SiteswapAnimation() {
         });
 
         if (isSync) {
-          state.hands.forEach((hand) => {
+          for (const hand of state.hands) {
             if (hand.heldBalls.length > 0) {
               hand.nextThrowValue =
                 state.pattern[hand.patternIndex % state.pattern.length];
               hand.nextThrowTime = 0;
               hand.patternIndex += 1;
             }
-          });
+          }
         } else {
           // Find the first non-zero throw to start the animation, skipping initial '0's.
           let startBeat = 0;
@@ -344,7 +340,7 @@ export default function SiteswapAnimation() {
           }
 
           let beat = startBeat;
-          for (let i = 0; i < numBalls; i++) {
+          for (let index = 0; index < numBalls; index++) {
             const hand = state.hands.find((h) => h.beat === beat % 2);
             if (hand && hand.heldBalls.length > 0) {
               hand.nextThrowValue =
@@ -356,8 +352,8 @@ export default function SiteswapAnimation() {
           }
         }
         setError('');
-      } catch (e: any) {
-        setError(e.message);
+      } catch (error: unknown) {
+        setError((error as Error).message);
       }
     };
 
@@ -365,7 +361,7 @@ export default function SiteswapAnimation() {
       const state = animationState.current;
 
       // Update hands
-      state.hands.forEach((hand) => {
+      for (const hand of state.hands) {
         const xRadius = state.isFountain
           ? ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS
           : ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS;
@@ -380,13 +376,13 @@ export default function SiteswapAnimation() {
           ((time % period) / period - hand.beat / 2) * Math.PI * 2 + Math.PI;
         hand.x = hand.baseX + Math.sin(phase) * xRadius * hand.direction;
         hand.y = hand.baseY + Math.cos(phase) * yRadius;
-      });
+      }
 
       // Check for throws
-      state.hands.forEach((hand) => {
+      for (const hand of state.hands) {
         if (hand.heldBalls.length > 0 && time >= hand.nextThrowTime) {
           const ball = hand.heldBalls.shift();
-          if (!ball) return;
+          if (!ball) continue;
 
           const throwValue = hand.nextThrowValue;
           const useOuterPlane = hand.throwInOuterPlane;
@@ -424,11 +420,7 @@ export default function SiteswapAnimation() {
 
           // The control point for the Bezier curve is offset to create separate planes
           const planeOffset = 0; // Plane offset is removed.
-          if (ball.isCrossingThrow) {
-            ball.controlX = (ball.startX + ball.endX) / 2 + planeOffset;
-          } else {
-            ball.controlX = planeOffset * hand.direction;
-          }
+          ball.controlX = ball.isCrossingThrow ? (ball.startX + ball.endX) / 2 + planeOffset : planeOffset * hand.direction;
 
           hand.nextThrowTime =
             time + (state.isSync ? state.beatDuration : 2 * state.beatDuration);
@@ -437,10 +429,10 @@ export default function SiteswapAnimation() {
           hand.throwInOuterPlane = !useOuterPlane;
           hand.patternIndex += state.isSync ? 1 : 2;
         }
-      });
+      }
 
       // Update balls
-      state.balls.forEach((ball) => {
+      for (const ball of state.balls) {
         if (ball.inAir) {
           const timeInAir = time - ball.throwTime;
           if (timeInAir >= ball.flightDuration) {
@@ -471,14 +463,8 @@ export default function SiteswapAnimation() {
 
             // For a "1" throw (shower pass), use a very low, gentle arc.
             // For all other throws, use the standard parabolic arc.
-            if (ball.currentThrow === 1 && ball.isCrossingThrow) {
-              ball.y =
-                ball.startY -
-                ball.throwHeight * 0.5 * Math.sin(progress * Math.PI);
-            } else {
-              ball.y =
-                ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
-            }
+            ball.y = ball.currentThrow === 1 && ball.isCrossingThrow ? ball.startY -
+                ball.throwHeight * 0.5 * Math.sin(progress * Math.PI) : ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
           }
         } else {
           const holdingHand = state.hands.find((h) =>
@@ -489,25 +475,26 @@ export default function SiteswapAnimation() {
             ball.y = holdingHand.y;
           }
         }
-      });
+      }
     };
 
+
     const draw = () => {
-      ctx.clearRect(0, 0, width, height);
+      context.clearRect(0, 0, width, height);
       const { balls, hands, elapsedTime, beatDuration, isSync } =
         animationState.current;
 
       const currentBeat = Math.floor(elapsedTime / beatDuration);
 
-      hands.forEach((hand) => {
+      for (const hand of hands) {
         const isActive =
           colorParams.showBeatIndicator &&
           (isSync || currentBeat % 2 === hand.beat);
 
-        ctx.fillStyle = isActive
+        context.fillStyle = isActive
           ? colorParams.activeBeatColor
           : colorParams.inactiveBeatColor;
-        ctx.fillRect(
+        context.fillRect(
           hand.x - ANIMATION_CONFIG.HAND_WIDTH / 2,
           hand.y - ANIMATION_CONFIG.HAND_HEIGHT / 2,
           ANIMATION_CONFIG.HAND_WIDTH,
@@ -515,24 +502,24 @@ export default function SiteswapAnimation() {
         );
 
         if (isActive) {
-          ctx.strokeStyle = colorParams.activeBeatBorderColor;
-          ctx.lineWidth = 2;
-          ctx.strokeRect(
+          context.strokeStyle = colorParams.activeBeatBorderColor;
+          context.lineWidth = 2;
+          context.strokeRect(
             hand.x - ANIMATION_CONFIG.HAND_WIDTH / 2,
             hand.y - ANIMATION_CONFIG.HAND_HEIGHT / 2,
             ANIMATION_CONFIG.HAND_WIDTH,
             ANIMATION_CONFIG.HAND_HEIGHT,
           );
         }
-      });
+      }
 
-      balls.forEach((ball) => {
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ANIMATION_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = ball.color;
-        ctx.fill();
-        ctx.closePath();
-      });
+      for (const ball of balls) {
+        context.beginPath();
+        context.arc(ball.x, ball.y, ANIMATION_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+        context.fillStyle = ball.color;
+        context.fill();
+        context.closePath();
+      }
     };
 
     const animationLoop = (currentTime: number) => {
@@ -556,9 +543,8 @@ export default function SiteswapAnimation() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [siteswap, bpm, isRunning, animParams, colorParams]);
+  }, [siteswap, bpm, isRunning, animParams, colorParams, dimensions.height, dimensions.width, width, height]);
 
-  const { width, height } = dimensions;
 
   return (
     <div
@@ -572,6 +558,7 @@ export default function SiteswapAnimation() {
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         padding: '20px',
+        boxSizing: 'border-box',
       }}
     >
       <h1>Siteswap Animator (Alpha)</h1>
@@ -630,7 +617,7 @@ export default function SiteswapAnimation() {
             id='siteswap-input'
             type='text'
             value={siteswap}
-            onChange={(e) => setSiteswap(e.target.value)}
+            onChange={(event) => setSiteswap(event.target.value)}
             style={{
               backgroundColor: '#333',
               border: '1px solid #444',
@@ -648,7 +635,7 @@ export default function SiteswapAnimation() {
             id='bpm-input'
             type='number'
             value={bpm}
-            onChange={(e) => setBpm(parseInt(e.target.value, 10))}
+            onChange={(event) => setBpm(Number.parseInt(event.target.value, 10))}
             min='30'
             max='300'
             style={{
@@ -741,10 +728,10 @@ export default function SiteswapAnimation() {
               id='single-color-toggle'
               type='checkbox'
               checked={colorParams.useSingleColor}
-              onChange={(e) =>
-                setColorParams((prev) => ({
-                  ...prev,
-                  useSingleColor: e.target.checked,
+              onChange={(event) =>
+                setColorParams((previous) => ({
+                  ...previous,
+                  useSingleColor: event.target.checked,
                 }))
               }
             />
@@ -767,10 +754,10 @@ export default function SiteswapAnimation() {
                   id='ball-color-picker'
                   type='color'
                   value={colorParams.singleBallColor}
-                  onChange={(e) =>
-                    setColorParams((prev) => ({
-                      ...prev,
-                      singleBallColor: e.target.value,
+                  onChange={(event) =>
+                    setColorParams((previous) => ({
+                      ...previous,
+                      singleBallColor: event.target.value,
                     }))
                   }
                 />
@@ -786,10 +773,10 @@ export default function SiteswapAnimation() {
                   min='0'
                   max='360'
                   value={colorParams.baseHue}
-                  onChange={(e) =>
-                    setColorParams((prev) => ({
-                      ...prev,
-                      baseHue: parseInt(e.target.value, 10),
+                  onChange={(event) =>
+                    setColorParams((previous) => ({
+                      ...previous,
+                      baseHue: Number.parseInt(event.target.value, 10),
                     }))
                   }
                   style={{ flexGrow: 1 }}
@@ -836,10 +823,10 @@ export default function SiteswapAnimation() {
               max='0.8'
               step='0.01'
               value={animParams.handSeparation}
-              onChange={(e) =>
-                setAnimParams((prev) => ({
-                  ...prev,
-                  handSeparation: parseFloat(e.target.value),
+              onChange={(event) =>
+                setAnimParams((previous) => ({
+                  ...previous,
+                  handSeparation: Number.parseFloat(event.target.value),
                 }))
               }
               style={{ flexGrow: 1 }}
@@ -864,10 +851,10 @@ export default function SiteswapAnimation() {
               max='5'
               step='0.1'
               value={animParams.throwHeight}
-              onChange={(e) =>
-                setAnimParams((prev) => ({
-                  ...prev,
-                  throwHeight: parseFloat(e.target.value),
+              onChange={(event) =>
+                setAnimParams((previous) => ({
+                  ...previous,
+                  throwHeight: Number.parseFloat(event.target.value),
                 }))
               }
               style={{ flexGrow: 1 }}
@@ -910,10 +897,10 @@ export default function SiteswapAnimation() {
                 type='color'
                 style={{ width: '100%' }}
                 value={colorParams.activeBeatColor}
-                onChange={(e) =>
-                  setColorParams((prev) => ({
-                    ...prev,
-                    activeBeatColor: e.target.value,
+                onChange={(event) =>
+                  setColorParams((previous) => ({
+                    ...previous,
+                    activeBeatColor: event.target.value,
                   }))
                 }
               />
@@ -933,10 +920,10 @@ export default function SiteswapAnimation() {
                 type='color'
                 style={{ width: '100%' }}
                 value={colorParams.inactiveBeatColor}
-                onChange={(e) =>
-                  setColorParams((prev) => ({
-                    ...prev,
-                    inactiveBeatColor: e.target.value,
+                onChange={(event) =>
+                  setColorParams((previous) => ({
+                    ...previous,
+                    inactiveBeatColor: event.target.value,
                   }))
                 }
               />
@@ -956,10 +943,10 @@ export default function SiteswapAnimation() {
                 type='color'
                 style={{ width: '100%' }}
                 value={colorParams.activeBeatBorderColor}
-                onChange={(e) =>
-                  setColorParams((prev) => ({
-                    ...prev,
-                    activeBeatBorderColor: e.target.value,
+                onChange={(event) =>
+                  setColorParams((previous) => ({
+                    ...previous,
+                    activeBeatBorderColor: event.target.value,
                   }))
                 }
               />
@@ -980,10 +967,10 @@ export default function SiteswapAnimation() {
                 id='beat-indicator-toggle'
                 type='checkbox'
                 checked={colorParams.showBeatIndicator}
-                onChange={(e) =>
-                  setColorParams((prev) => ({
-                    ...prev,
-                    showBeatIndicator: e.target.checked,
+                onChange={(event) =>
+                  setColorParams((previous) => ({
+                    ...previous,
+                    showBeatIndicator: event.target.checked,
                   }))
                 }
               />

@@ -22,6 +22,19 @@ const eslintConfig = [
   {
     rules: {
       'unicorn/filename-case': 'off',
+      'unicorn/prevent-abbreviations': [
+        'error',
+        {
+          replacements: {
+            props: false,
+            params: false,
+            args: false,
+            ref: false,
+            refs: false,
+            env: false,
+          },
+        },
+      ],
     },
   },
   ...compat.extends('eslint:recommended'),

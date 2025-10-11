@@ -19,5 +19,5 @@ export function Widget<T extends string>(props: WidgetProps<T>) {
     >
       {children}
     </div>
-  ) : null;
+  ) : undefined;
 }

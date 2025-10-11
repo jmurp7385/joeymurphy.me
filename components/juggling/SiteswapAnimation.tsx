@@ -25,6 +25,11 @@ const ANIMATION_CONFIG = {
   // Default UI values
   DEFAULT_BPM: 180,
   DEFAULT_SITESWAP: '3',
+
+  // Color Defaults
+  DEFAULT_ACTIVE_BEAT_COLOR: '#007acc',
+  DEFAULT_INACTIVE_BEAT_COLOR: '#444',
+  DEFAULT_ACTIVE_BEAT_BORDER_COLOR: '#ffffff',
 };
 
 // Interface for a ball object in the juggling simulation
@@ -76,6 +81,12 @@ export default function SiteswapAnimation() {
   const [animParams, setAnimParams] = useState({
     handSeparation: ANIMATION_CONFIG.HAND_SEPARATION_FACTOR,
     throwHeight: ANIMATION_CONFIG.THROW_HEIGHT_SCALE_FACTOR,
+  });
+  const [colorParams, setColorParams] = useState({
+    activeBeatColor: ANIMATION_CONFIG.DEFAULT_ACTIVE_BEAT_COLOR,
+    inactiveBeatColor: ANIMATION_CONFIG.DEFAULT_INACTIVE_BEAT_COLOR,
+    activeBeatBorderColor: ANIMATION_CONFIG.DEFAULT_ACTIVE_BEAT_BORDER_COLOR,
+    showBeatIndicator: true,
   });
 
   const animationState = useRef({
@@ -183,7 +194,7 @@ export default function SiteswapAnimation() {
 
     const resetAnimation = (newSiteswap: string, newBpm: number) => {
       try {
-        const { pattern, numBalls, isSync } = parseSiteswap(newSiteswap, newBpm);
+        const { pattern, numBalls, isSync } = parseSiteswap(newSiteswap);
         const state = animationState.current;
 
         state.pattern = pattern;
@@ -404,16 +415,31 @@ export default function SiteswapAnimation() {
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
-      const { balls, hands, elapsedTime } = animationState.current;
+      const { balls, hands, elapsedTime, beatDuration, isSync } = animationState.current;
+
+      const currentBeat = Math.floor(elapsedTime / beatDuration);
 
       hands.forEach((hand) => {
-        ctx.fillStyle = '#888';
+        const isActive = colorParams.showBeatIndicator && (isSync || currentBeat % 2 === hand.beat);
+
+        ctx.fillStyle = isActive ? colorParams.activeBeatColor : colorParams.inactiveBeatColor;
         ctx.fillRect(
           hand.x - ANIMATION_CONFIG.HAND_WIDTH / 2,
           hand.y - ANIMATION_CONFIG.HAND_HEIGHT / 2,
           ANIMATION_CONFIG.HAND_WIDTH,
           ANIMATION_CONFIG.HAND_HEIGHT,
         );
+
+        if (isActive) {
+          ctx.strokeStyle = colorParams.activeBeatBorderColor;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(
+            hand.x - ANIMATION_CONFIG.HAND_WIDTH / 2,
+            hand.y - ANIMATION_CONFIG.HAND_HEIGHT / 2,
+            ANIMATION_CONFIG.HAND_WIDTH,
+            ANIMATION_CONFIG.HAND_HEIGHT,
+          );
+        }
       });
 
       balls.forEach((ball) => {
@@ -445,7 +471,7 @@ export default function SiteswapAnimation() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [siteswap, bpm, isRunning, animParams]);
+  }, [siteswap, bpm, isRunning, animParams, colorParams]);
 
   const width = ANIMATION_CONFIG.CANVAS_WIDTH;
   const height = ANIMATION_CONFIG.CANVAS_HEIGHT;
@@ -627,6 +653,42 @@ export default function SiteswapAnimation() {
             style={{ flexGrow: 1 }}
           />
           <span>{animParams.throwHeight.toFixed(1)}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+          <label htmlFor="active-color-picker" style={{ flexBasis: '120px' }}>Active Color:</label>
+          <input
+            id="active-color-picker"
+            type="color"
+            value={colorParams.activeBeatColor}
+            onChange={(e) => setColorParams(prev => ({ ...prev, activeBeatColor: e.target.value }))}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+          <label htmlFor="inactive-color-picker" style={{ flexBasis: '120px' }}>Inactive Color:</label>
+          <input
+            id="inactive-color-picker"
+            type="color"
+            value={colorParams.inactiveBeatColor}
+            onChange={(e) => setColorParams(prev => ({ ...prev, inactiveBeatColor: e.target.value }))}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+          <label htmlFor="border-color-picker" style={{ flexBasis: '120px' }}>Border Color:</label>
+          <input
+            id="border-color-picker"
+            type="color"
+            value={colorParams.activeBeatBorderColor}
+            onChange={(e) => setColorParams(prev => ({ ...prev, activeBeatBorderColor: e.target.value }))}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+            <label htmlFor="beat-indicator-toggle" style={{ flexBasis: '120px' }}>Show Beat Indicator:</label>
+            <input
+              id="beat-indicator-toggle"
+              type="checkbox"
+              checked={colorParams.showBeatIndicator}
+              onChange={(e) => setColorParams(prev => ({ ...prev, showBeatIndicator: e.target.checked }))}
+            />
         </div>
       </div>
     </div>

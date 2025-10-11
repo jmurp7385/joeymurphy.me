@@ -34,8 +34,19 @@ interface JugglingAnimationProps {
 }
 
 const isThrow = (t: unknown): t is Throw =>
-  typeof t === 'object' && t !== null && 'value' in t;
+  typeof t === 'object' && t !== null && 'value' in t && 'isCrossing' in t;
 
+/**
+ * Checks if a given throw or multiplex throw consists entirely of zero-value throws.
+ * @param throwValue A Throw object or an array of Throw objects.
+ * @returns True if all throws have a value of 0.
+ */
+const isZeroThrow = (throwValue: Throw | Throw[]): boolean => {
+  if (Array.isArray(throwValue)) {
+    return throwValue.every((t) => t.value === 0);
+  }
+  return isThrow(throwValue) && throwValue.value === 0;
+};
 export const useJugglingAnimation = ({
   canvasRef,
   siteswap,
@@ -104,7 +115,7 @@ export const useJugglingAnimation = ({
             heldBalls: [],
             nextThrowTime: Infinity,
             throwInOuterPlane: true,
-            nextThrowValue: { value: 0 },
+            nextThrowValue: { value: 0, isCrossing: false },
           },
           {
             id: 1,
@@ -118,7 +129,7 @@ export const useJugglingAnimation = ({
             heldBalls: [],
             nextThrowTime: Infinity,
             throwInOuterPlane: true,
-            nextThrowValue: { value: 0 },
+            nextThrowValue: { value: 0, isCrossing: false },
           },
         ];
 
@@ -158,22 +169,18 @@ export const useJugglingAnimation = ({
         // --- Initial Throw Scheduling ---
         if (isSync) {
           for (const hand of state.hands) {
-            if (hand.heldBalls.length > 0) {
-              hand.nextThrowValue =
-                state.pattern[hand.patternIndex % state.pattern.length];
-              hand.nextThrowTime = 0;
-              hand.patternIndex += 2;
-            }
+            // Schedule initial throws for sync patterns
+            hand.nextThrowValue =
+              state.pattern[hand.patternIndex % state.pattern.length];
+            hand.nextThrowTime = hand.beat * state.beatDuration;
+            hand.patternIndex += 1;
           }
         } else {
           let startBeat = 0;
           while (
             // Only skip beats with a throw value of 0
             // This check needs to handle both single Throw objects and arrays of Throws (multiplex)
-            (Array.isArray(pattern[startBeat % pattern.length])
-              ? pattern[startBeat % pattern.length].every((t) => t.value === 0)
-              : isThrow(pattern[startBeat % pattern.length]) &&
-                pattern[startBeat % pattern.length].value === 0) &&
+            isZeroThrow(pattern[startBeat % pattern.length]) &&
             startBeat < pattern.length
           ) {
             startBeat++;
@@ -231,16 +238,12 @@ export const useJugglingAnimation = ({
             let isCross: boolean;
 
             if (state.isSync) {
-              isCross = isThrow(throwValue)
-                ? throwValue.isCrossing ?? false
-                : false;
+              isCross = isThrow(throwValue) ? throwValue.isCrossing : false;
               landingHand = isCross
                 ? state.hands.find((h) => h.id !== hand.id)!
                 : hand;
             } else {
-              isCross = isThrow(currentThrow)
-                ? currentThrow.isCrossing ?? false
-                : false;
+              isCross = isThrow(currentThrow) ? currentThrow.isCrossing : false;
               const landingBeat = (hand.beat + currentThrow.value) % 2;
               landingHand = state.hands.find((h) => h.beat === landingBeat)!;
             }

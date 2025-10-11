@@ -4,6 +4,7 @@ import {
   ANIMATION_CONFIG,
   Ball,
   Hand,
+  Throw,
 } from './animation-types';
 import { parseSiteswap } from './siteswap-parser';
 import { getStyles } from './styles';
@@ -41,7 +42,7 @@ export default function SiteswapAnimation() {
   const animationState = useRef({
     balls: [] as Ball[],
     hands: [] as Hand[],
-    pattern: [3] as (number | number[])[],
+    pattern: [{ value: 3, isCrossing: true }] as (Throw | Throw[])[],
     numBalls: 3,
     isSync: false,
     isFountain: false,

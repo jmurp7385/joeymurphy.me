@@ -49,11 +49,8 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
         throw new Error(
           'Invalid sync pattern: throws must have the same landing hand (both crossing or both not crossing).',
         );
-      throws.push(
-        { value: leftValue, isCrossing: leftIsCross },
-        { value: rightValue, isCrossing: rightIsCross },
-      );
-      remainingString = remainingString.slice(Math.max(0, endIndex + 1));
+      throws.push({ value: leftValue, isCrossing: leftIsCross }, { value: rightValue, isCrossing: rightIsCross });
+      remainingString = remainingString.substring(endIndex + 1);
     } else if (remainingString.startsWith('[')) {
       const endIndex = remainingString.indexOf(']');
       if (endIndex === -1)
@@ -62,15 +59,15 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
       throws.push(
         [...content].map((t) => {
           const value = Number.parseInt(t, 36);
-          return { value, isCrossing: value % 2 !== 0 };
+          return { value, isCrossing: value % 2 !== 0 } as Throw;
         }),
       );
-      remainingString = remainingString.slice(Math.max(0, endIndex + 1));
+      remainingString = remainingString.substring(endIndex + 1);
     } else {
       const char = remainingString[0];
       const value = Number.parseInt(char, 36);
       throws.push({ value, isCrossing: value % 2 !== 0 });
-      remainingString = remainingString.slice(1);
+      remainingString = remainingString.substring(1);
     }
   }
 

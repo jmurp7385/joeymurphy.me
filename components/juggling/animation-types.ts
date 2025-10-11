@@ -21,7 +21,7 @@ export interface Ball {
 
 export interface Throw {
   value: number;
-  isCrossing?: boolean;
+  isCrossing: boolean;
 }
 
 /** Interface for a hand object in the juggling simulation. */

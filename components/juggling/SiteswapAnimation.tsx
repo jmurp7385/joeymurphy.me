@@ -167,7 +167,7 @@ export default function SiteswapAnimation() {
   useEffect(() => {
     const handleResize = () => {
       setDimensions({
-        width: window.innerWidth * 0.8,
+        width: Math.min(800, window.innerWidth * 0.8),
         height: window.innerHeight * 0.5,
       });
       animationState.current.maxHeight = window.innerHeight * 0.5;

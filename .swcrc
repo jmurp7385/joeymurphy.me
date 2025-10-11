@@ -1,0 +1,24 @@
+{
+  "jsc": {
+    "parser": {
+      "syntax": "ecmascript",
+      "jsx": true
+    },
+    "transform": {
+      "react": {
+        "runtime": "automatic"
+      }
+    },
+    "target": "es2022", // Base target for server (Node.js "current")
+    "module": {
+      "type": "commonjs" // Matches your Babel modules: 'commonjs'
+    }
+  },
+  "env": {
+    "targets": {
+      "chrome": "58",
+      "ie": "11"
+    }
+  },
+  "sourceMaps": true
+}

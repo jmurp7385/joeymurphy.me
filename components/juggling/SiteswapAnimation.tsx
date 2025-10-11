@@ -1,603 +1,633 @@
 import { useEffect, useRef, useState } from 'react';
-import * as d3 from 'd3';
-import { ThrowHistory } from './ThrowHistory';
-import { classifySiteswap } from './helpers';
 
-// Define default values for animation parameters to ensure consistent initialization
-const defaults = {
-  sitswap: [5, 1], // Default siteswap pattern
-  dwellMin: 200, // Minimum dwell time in ms (realistic hand hold time)
-  dwellMax: 500, // Maximum dwell time in ms (allows flexibility but keeps rhythm)
-  speedLimit: 1000, // Maximum throw duration in ms, allows higher throws within SVG
-  speedMultiplier: 1, // Default multiplier for throw speed (1 = normal speed)
-  throwLimit: 0, // Limit to 20 throws for finite animation
+const ANIMATION_CONFIG = {
+  // Canvas dimensions
+  CANVAS_WIDTH: 600,
+  CANVAS_HEIGHT: 600,
+
+  // Hand properties
+  HAND_Y_OFFSET: 50,
+  HAND_SEPARATION_FACTOR: 0.5, // Proportion of canvas width between hands (0 to 1)
+  HAND_OSCILLATION_X_RADIUS: 20,
+  HAND_OSCILLATION_Y_RADIUS: 30,
+  HAND_WIDTH: 40,
+  HAND_HEIGHT: 10,
+
+  // Ball and throw properties
+  BALL_RADIUS: 10,
+  BALL_COLOR_HUE_STEP: 40,
+  BALL_COLOR_SATURATION: 90,
+  BALL_COLOR_LIGHTNESS: 60,
+  BALL_DEPTH_SCALE_FACTOR: 0.2,
+  THROW_HEIGHT_SCALE_FACTOR: 7,
+  PLANE_OFFSET: 80,
+
+  // Default UI values
+  DEFAULT_BPM: 180,
+  DEFAULT_SITESWAP: '3',
 };
 
 // Interface for a ball object in the juggling simulation
 export interface Ball {
   id: number; // Unique identifier for the ball
-  x: number; // Current X-position in SVG
+  x: number; // Current X-position in SVG,
   y: number; // Current Y-position in SVG
   inAir: boolean; // Whether the ball is currently in the air
+  lastThrowTime: number; // Simulated time (ms) when the ball was last thrown
   throwTime: number; // Simulated time (ms) when the ball is scheduled to throw next
   fromLeft: boolean; // Indicates if the ball is currently in the left hand
   currentThrow: number; // Current siteswap value (e.g., 3, 4, etc.)
   throwIndex: number; // Current index in the siteswap pattern
-  stagger: number; // Initial stagger offset (ms) from simulation start
+  controlX?: number; // Control point for the Bezier curve
+  isCrossingThrow?: boolean;
+  startX: number;
+  startY: number;
+  endX: number;
+  flightDuration: number;
+  throwHeight: number;
+  color: string;
+}
+
+export interface Hand {
+  id: number;
+  x: number;
+  y: number;
+  baseX: number;
+  baseY: number;
+  beat: number;
+  direction: number;
+  patternIndex: number;
+  heldBalls: Ball[];
+  nextThrowTime: number;
+  throwInOuterPlane: boolean;
+  nextThrowValue: number | number[];
 }
 
 /**
  * SiteswapAnimation Component
- * Renders an animated juggling pattern using simulated time, ensuring one throw per cycle,
- * smooth ticking, type safety, logging, and history visualization.
+ * Renders a canvas-based juggling animation with support for async, sync, and multiplex patterns.
  */
 export default function SiteswapAnimation() {
-  // Reference to the SVG element for D3 manipulation
-  const svgReference = useRef<SVGSVGElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [siteswap, setSiteswap] = useState(ANIMATION_CONFIG.DEFAULT_SITESWAP);
+  const [bpm, setBpm] = useState(ANIMATION_CONFIG.DEFAULT_BPM);
+  const [isRunning, setIsRunning] = useState(true);
+  const [error, setError] = useState('');
+  const [animParams, setAnimParams] = useState({
+    handSeparation: ANIMATION_CONFIG.HAND_SEPARATION_FACTOR,
+    throwHeight: ANIMATION_CONFIG.THROW_HEIGHT_SCALE_FACTOR,
+  });
 
-  // State for the siteswap pattern (array of numbers), e.g., [3] for a 3-ball cascade
-  const [siteswap, setSiteswap] = useState<number[]>(defaults.sitswap);
+  const animationState = useRef({
+    balls: [] as Ball[],
+    hands: [] as Hand[],
+    pattern: [3] as (number | number[])[],
+    numBalls: 3,
+    isSync: false,
+    isFountain: false,
+    beatDuration: 60000 / ANIMATION_CONFIG.DEFAULT_BPM,
+    maxHeight: ANIMATION_CONFIG.CANVAS_HEIGHT * 0.8,
+    elapsedTime: 0,
+    lastTime: 0,
+  });
 
-  // State to toggle animation pause/play
-  const [paused, setPaused] = useState<boolean>(false);
-
-  // State for minimum dwell time (ms) a ball stays in hand before throwing
-  const [dwellMin, setDwellMin] = useState<number>(defaults.dwellMin);
-
-  // State for maximum dwell time (ms) a ball stays in hand before throwing
-  const [dwellMax, setDwellMax] = useState<number>(defaults.dwellMax);
-
-  // State for pace multiplier, scaling simulation speed (1 = normal, <1 slower, >1 faster)
-  const [paceMultiplier, setPaceMultiplier] = useState<number>(1);
-
-  // State for speed limit (ms), capping maximum throw duration
-  const [speedLimit, setSpeedLimit] = useState<number>(defaults.speedLimit);
-
-  // State for speed multiplier, scaling throw speed independently (1 = normal, <1 slower, >1 faster)
-  const [speedMultiplier, setSpeedMultiplier] = useState<number>(
-    defaults.speedMultiplier,
-  );
-
-  // State for throw limit (0 = infinite, >0 = stop after X throws)
-  const [throwLimit, setThrowLimit] = useState<number>(defaults.throwLimit);
-
-  // State to track the total number of throws performed
-  const [throwCount, setThrowCount] = useState<number>(0);
-
-  // State to track total simulated time (ms)
-  const [simulatedTime, setSimulatedTime] = useState<number>(0);
-
-  // State to record throw history
-  const [throwHistory, setThrowHistory] = useState<Ball[]>([]);
-
-  // Reference to the D3 timer for animation updates
-  const timerReference = useRef<d3.Timer | null>(null);
-  // Reference to the animation start time for calculating throwTime
-  const startTimeReference = useRef<number>(0);
-
-  // SVG Dimensions (constant)
-  const width = 600; // Width of the SVG canvas in pixels
-  const height = 600; // Height of the SVG canvas in pixels
-
-  // Siteswap pattern properties (depend on state)
-  const patternLength = siteswap.length; // Number of digits in the siteswap pattern
-  const { numberBalls, type } = classifySiteswap(siteswap.join('')); // Average determines number of balls
-  const isShower = type === 'shower';
-  const loopLength = siteswap.reduce((a, b) => a + b, 0); // Total beats in one cycle
-  const beat = numberBalls; // Reference beat value for normalizing throw durations (based on "3")
-  const baseThrowDuration = speedLimit * speedMultiplier; // Base throw duration scaled by speed controls
-  const beatDuration = baseThrowDuration / beat; // Duration of one beat in ms (e.g., 333ms with speedLimit=1000)
-  const cycleDuration = loopLength * beatDuration; // Total duration of one loop cycle
-  const maxHeight = height; // Maximum height balls can reach within SVG
-
-  // Ball and hand properties (constant)
-  const ballRadius = 15; // Radius of each ball in pixels
-  const handY = height - 50; // Fixed Y-position of hands near the bottom of SVG
-  const leftHandX = width / 4; // X-position of the left hand (center = 150px)
-  const rightHandX = (3 * width) / 4; // X-position of the right hand (center = 450px)
-
-  // Simulation time step (ms per frame, ~60fps)
-  const timeStep = 16;
-
-  // Initialize balls array with staggered timing based on loop length and hand-specific cycles
-
-  const [balls, setBallArray] = useState<Ball[]>(
-    Array.from({ length: numberBalls }, (_, index) => {
-      const isLeft = index < Math.ceil(numberBalls / 2); // More balls in left hand if odd numBalls
-      const handBallCount = isLeft
-        ? Math.ceil(numberBalls / 2)
-        : Math.floor(numberBalls / 2);
-      // Stagger each ball within its hand's cycle, offset right hand by half beat
-      const stagger =
-        (index % handBallCount) * (cycleDuration / handBallCount) +
-        (isLeft ? 0 : beatDuration / 2);
-      return {
-        id: index,
-        x: isLeft ? leftHandX : rightHandX,
-        y: handY,
-        inAir: false,
-        throwTime: stagger, // Simulated time from start
-        stagger, // Store initial stagger for reference
-        fromLeft: isLeft,
-        currentThrow: siteswap[index % patternLength],
-        throwIndex: index % patternLength,
-      };
-    }),
-  );
-
+  // Effect to automatically adjust hand separation when the siteswap changes
   useEffect(() => {
-    setBallArray(
-      Array.from({ length: numberBalls }, (_, index) => {
-        const isLeft = index < Math.ceil(numberBalls / 2); // More balls in left hand if odd numBalls
-        const handBallCount = isLeft
-          ? Math.ceil(numberBalls / 2)
-          : Math.floor(numberBalls / 2);
-        // Stagger each ball within its hand's cycle, offset right hand by half beat
-        const stagger =
-          (index % handBallCount) * (cycleDuration / handBallCount) +
-          (isLeft ? 0 : beatDuration / 2);
-        return {
-          id: index,
-          x: isLeft ? leftHandX : rightHandX,
-          y: handY,
-          inAir: false,
-          throwTime: stagger, // Simulated time from start
-          stagger, // Store initial stagger for reference
-          fromLeft: isLeft,
-          currentThrow: siteswap[index % patternLength],
-          throwIndex: isShower ? (isLeft ? 0 : 1) : index % patternLength,
-        };
-      }),
-    );
-    // setBallArray([
-    //   {
-    //     id: 0,
-    //     x: leftHandX,
-    //     y: handY,
-    //     inAir: false,
-    //     throwTime: 0, // Simulated time from start
-    //     stagger: 0, // Store initial stagger for reference
-    //     fromLeft: true,
-    //     currentThrow: 5,
-    //     throwIndex: 0 % patternLength,
-    //   },
-    //   {
-    //     id: 1,
-    //     x: leftHandX,
-    //     y: handY,
-    //     inAir: false,
-    //     throwTime: 500, // Simulated time from start
-    //     stagger: 500, // Store initial stagger for reference
-    //     fromLeft: true,
-    //     currentThrow: 5,
-    //     throwIndex: 1 % patternLength,
-    //   },
+    // This parser is just for calculating numBalls to update the UI.
+    // The main animation's useEffect has its own parser instance.
+    const parseForNumBalls = (siteswapStr: string): { numBalls: number } | null => {
+      try {
+        siteswapStr = siteswapStr.toLowerCase().replace(/\s/g, '');
+        if (!siteswapStr) return null;
 
-    //   {
-    //     id: 2,
-    //     x: rightHandX,
-    //     y: handY,
-    //     inAir: false,
-    //     throwTime: 1000, // Simulated time from start
-    //     stagger: 1000, // Store initial stagger for reference
-    //     fromLeft: false,
-    //     currentThrow: 1,
-    //     throwIndex: 3 % patternLength,
-    //   },
-    // ]);
-  }, [
-    numberBalls,
-    beatDuration,
-    cycleDuration,
-    handY,
-    leftHandX,
-    patternLength,
-    rightHandX,
-    siteswap,
-  ]);
+        const isSync = siteswapStr.includes('(');
+        const pattern = isSync ? /\((\w+),(\w+)\)/g : /(\[[\da-z]+\]|[\da-z])/g;
 
-  // useEffect hook to run animation logic when siteswap or control parameters change
-  useEffect(() => {
-    // Create and configure the SVG canvas using D3
-    const svg = d3
-      .select(svgReference.current)
-      .attr('width', width)
-      .attr('height', height)
-      .style('background', '#f0f0f0'); // Light gray background for visibility
-
-    // Animation function to set up and run the juggling simulation
-    function animate() {
-      svg.selectAll('.ball').remove(); // Clear previous balls from SVG
-
-      // Create ball elements in the SVG with initial positions
-      const ballSelection = svg
-        .selectAll('.ball')
-        .data(balls)
-        .enter()
-        .append('circle')
-        .attr('class', 'ball')
-        .attr('r', ballRadius)
-        .attr(
-          'fill',
-          (d: Ball) => `hsl(${d.id * (360 / numberBalls)}, 70%, 50%)`,
-        ) // Color based on ID
-        .attr('cx', (d: Ball) => d.x) // Initial X-position
-        .attr('cy', (d: Ball) => d.y); // Initial Y-position
-
-      // Animation tick function, updates ball positions each frame
-      const tick = () => {
-        const time = simulatedTime;
-        // const time = startTimeRef.current;
-        const elapseTime = timeStep / paceMultiplier;
-        if (!paused) {
-          // Record the start time for throwTime calculation
-          startTimeReference.current =
-            (startTimeReference.current ?? 0) + elapseTime;
-          setSimulatedTime((previous) => previous + elapseTime); // Increment simulated time
+        let throws: (number | number[])[] = [];
+        let match;
+        while ((match = pattern.exec(siteswapStr)) !== null) {
+          if (isSync) {
+            throws.push(parseInt(match[1].replace('x', ''), 36));
+            throws.push(parseInt(match[2].replace('x', ''), 36));
+          } else {
+            const part = match[1];
+            if (part.startsWith('[')) {
+              throws.push(part.substring(1, part.length - 1).split('').map(t => parseInt(t, 36)));
+            } else {
+              throws.push(parseInt(part, 36));
+            }
+          }
         }
-
-        // Only update positions if not paused and within throw limit
-        if (!paused && (throwLimit === 0 || throwCount < throwLimit)) {
-          setBallArray((previous) =>
-            previous.map((ball) => {
-              // Calculate throw duration based on siteswap value and speed controls
-              const baseDuration =
-                (ball.currentThrow / beat) * baseThrowDuration;
-              const adjustedDuration =
-                Math.min(speedLimit, baseDuration / speedMultiplier) /
-                paceMultiplier; // Apply speed limit, speed multiplier, and pace multiplier
-              const peakY = handY - maxHeight * (ball.currentThrow / 9); // Peak height scaled to siteswap value
-              const timeElapsed = time - ball.throwTime; // Time since last throw (simulated)
-
-              const cycleProgress = Math.min(
-                Math.max(timeElapsed / adjustedDuration, 0),
-                1,
-              ); // Progress of throw (0 to 1)
-              const isEven = ball.currentThrow % 2 === 0; // Check if throw switches hands (odd) or stays (even)
-
-              const shouldLand = timeElapsed >= adjustedDuration && ball.inAir;
-              // Check if the ball has landed
-              if (shouldLand) {
-                ball.inAir = false; // Mark ball as landed
-                ball.fromLeft = isEven ? ball.fromLeft : !ball.fromLeft; // Switch hands for odd throws
-                ball.throwIndex = isShower
-                  ? ball.fromLeft
-                    ? 0
-                    : 1
-                  : (ball.throwIndex + 1) % patternLength; // Move to next siteswap value
-                ball.currentThrow = siteswap[ball.throwIndex]; // Update current throw value
-                // const dwellTime = Math.min(
-                //   Math.max(dwellMin, beatDuration),
-                //   dwellMax,
-                // ); // Clamp dwell to beat duration
-                // Schedule next throw at the stagger offset in the next cycle
-                const cyclesCompleted = Math.floor(time / cycleDuration);
-
-                ball.throwTime =
-                  (cyclesCompleted + 1) * cycleDuration + ball.stagger;
-                ball.x = ball.fromLeft ? leftHandX : rightHandX; // Move to landing hand
-                ball.y = handY; // Reset to hand height
-                setThrowCount((previous) => previous + 1); // Increment throw count
-                // Log landing event
-                console.log(
-                  `Ball ${ball.id} landed at ${time}ms, next throw at ${
-                    ball.throwTime
-                  }ms, from ${ball.fromLeft ? 'left' : 'right'}`,
-                );
-              }
-
-              // Check if the ball should be thrown (when its scheduled time is reached)
-
-              const shouldThrow =
-                !ball.inAir &&
-                timeElapsed >= 0 &&
-                timeElapsed <= time + beatDuration;
-              console.log('---tick---');
-              console.table({
-                id: ball.id,
-                shouldLand,
-                shouldThrow,
-                inAir: ball.inAir,
-                throwIndex: ball.throwIndex,
-                beatDuration,
-                throwTime: ball.throwTime,
-                timeElapsed,
-                adjustedDuration,
-                cycleProgress,
-                'ball.currentThrow': ball.currentThrow,
-                beat: beat,
-                baseThrowDuration: baseThrowDuration,
-                baseDuration: baseDuration,
-                'timeElapsed/adjustedDuration': timeElapsed / adjustedDuration,
-              });
-              if (shouldThrow) {
-                ball.inAir = true; // Mark ball as in air
-                ball.throwTime = time + dwellMin; // Update throw time to current simulated time
-                // Record throw history
-                setThrowHistory((previous) => [
-                  {
-                    ...ball,
-                    throwTime: Math.floor(ball.throwTime),
-                  },
-                  ...previous,
-                ]);
-                // Log throw event
-                console.log(
-                  `Ball ${ball.id} thrown at ${time}ms, from ${
-                    ball.fromLeft ? 'left' : 'right'
-                  }, expected to land at ${ball.throwTime} value: ${
-                    ball.currentThrow
-                  }`,
-                );
-              }
-
-              // Update ball position if in air and not yet landed
-              if (ball.inAir && cycleProgress < 1) {
-                const startX = ball.fromLeft ? leftHandX : rightHandX; // Starting X-position
-                const oppositeHandX = ball.fromLeft ? rightHandX : leftHandX;
-                const endX = isEven ? startX : oppositeHandX; // Ending X-position
-                ball.x = startX + (endX - startX) * cycleProgress; // Linear interpolation for X
-                ball.y =
-                  handY -
-                  (handY - peakY) * 4 * cycleProgress * (1 - cycleProgress); // Parabolic Y motion
-              }
-              if (cycleProgress >= 1.2) startTimeReference.current = 0;
-              return ball;
-            }),
-          );
-        }
-
-        // Update SVG ball positions regardless of pause state to reflect current positions
-        ballSelection.attr('cx', (d: Ball) => d.x).attr('cy', (d: Ball) => d.y);
-      };
-      // Start or restart the animation timer
-      if (timerReference.current) {
-        timerReference.current.stop(); // Stop any existing timer
+        const sum = throws.flat().reduce((a, b) => a + b, 0);
+        if (sum === 0 || throws.length === 0 || sum % throws.length !== 0) return null;
+        return { numBalls: sum / throws.length };
+      } catch {
+        return null;
       }
-      timerReference.current = d3.timer(tick); // Start new timer with elapsed time
-    }
-
-    // Draw static hand rectangles
-    svg
-      .append('rect')
-      .attr('x', leftHandX - 20) // Left hand position
-      .attr('y', handY)
-      .attr('width', 40)
-      .attr('height', 20)
-      .attr('fill', '#666'); // Gray color
-
-    svg
-      .append('rect')
-      .attr('x', rightHandX - 20) // Right hand position
-      .attr('y', handY)
-      .attr('width', 40)
-      .attr('height', 20)
-      .attr('fill', '#666');
-
-    // Start the animation
-    animate();
-    const currentTimerReference = timerReference.current;
-    const currentSvgReference = svgReference.current;
-    // Cleanup function to stop timer and clear SVG on unmount or update
-    return () => {
-      if (currentTimerReference) {
-        currentTimerReference?.stop();
-      }
-      d3.select(currentSvgReference).selectAll('*').remove();
     };
-  }, [
-    balls,
-    baseThrowDuration,
-    beat,
-    beatDuration,
-    cycleDuration,
-    dwellMax, // Re-run when maximum dwell time changes
-    dwellMin, // Re-run when minimum dwell time changes
-    handY,
-    leftHandX,
-    maxHeight,
-    numberBalls,
-    paceMultiplier, // Re-run when pace multiplier changes
-    patternLength,
-    paused, // Re-run when pause state changes
-    rightHandX,
-    simulatedTime,
-    siteswap, // Re-run effect when siteswap changes
-    speedLimit, // Re-run when speed limit changes
-    speedMultiplier, // Re-run when speed multiplier changes
-    throwCount,
-    throwLimit, // Re-run when throw limit changes
-  ]);
 
-  // JSX for rendering the SVG, control UI, and throw history visualization
+    const result = parseForNumBalls(siteswap);
+    if (result) {
+      const newSeparation = Math.max(0.1, Math.min(result.numBalls / 10, 0.8));
+      setAnimParams(prev => ({ ...prev, handSeparation: newSeparation }));
+    }
+  }, [siteswap]);
+
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+
+    const parseSiteswap = (siteswapStr: string): { pattern: (number | number[])[], numBalls: number, isSync: boolean } => {
+      siteswapStr = siteswapStr.toLowerCase().replace(/\s/g, '');
+      if (!siteswapStr) throw new Error('Siteswap cannot be empty.');
+
+      const isSync = siteswapStr.includes('(');
+      let throws: (number | number[])[] = [];
+
+      if (isSync) {
+        const syncPattern = /\((\w+),(\w+)\)/g;
+        let match;
+        while ((match = syncPattern.exec(siteswapStr)) !== null) {
+          const leftThrow = match[1].replace('x', '');
+          const rightThrow = match[2].replace('x', '');
+          throws.push(parseInt(leftThrow, 36));
+          throws.push(parseInt(rightThrow, 36));
+        }
+        if (throws.length === 0)
+          throw new Error('Invalid sync siteswap format.');
+      } else {
+        const asyncPattern = /(\[[\da-z]+\]|[\da-z])/g;
+        let match;
+        while ((match = asyncPattern.exec(siteswapStr)) !== null) {
+          const part = match[1];
+          if (part.startsWith('[')) {
+            throws.push(
+              part
+                .substring(1, part.length - 1)
+                .split('')
+                .map((t) => parseInt(t, 36)),
+            );
+          } else {
+            throws.push(parseInt(part, 36));
+          }
+        }
+      }
+
+      const sum = throws.flat().reduce((a, b) => a + b, 0);
+      if (sum === 0 || throws.length === 0 || sum % throws.length !== 0) throw new Error("Invalid siteswap pattern.");
+      const numBalls = sum / throws.length;
+      return { pattern: throws, numBalls, isSync };
+    };
+
+    const resetAnimation = (newSiteswap: string, newBpm: number) => {
+      try {
+        const { pattern, numBalls, isSync } = parseSiteswap(newSiteswap, newBpm);
+        const state = animationState.current;
+
+        state.pattern = pattern;
+        state.numBalls = numBalls;
+        state.isSync = isSync;
+        state.beatDuration = 60000 / newBpm;
+        state.isFountain = pattern.every((throwVal) => {
+          if (Array.isArray(throwVal)) {
+            return throwVal.every((t) => t > 0 && t % 2 === 0);
+          }
+          return throwVal > 0 && throwVal % 2 === 0;
+        });
+
+        state.elapsedTime = 0;
+        state.lastTime = 0;
+
+        const handY = ANIMATION_CONFIG.CANVAS_HEIGHT - ANIMATION_CONFIG.HAND_Y_OFFSET;
+        const centerX = ANIMATION_CONFIG.CANVAS_WIDTH / 2;
+        const handDist = (ANIMATION_CONFIG.CANVAS_WIDTH * animParams.handSeparation) / 2;
+        const leftHandX = centerX - handDist;
+        const rightHandX = centerX + handDist;
+
+        state.hands = [
+          {
+            id: 0,
+            baseX: leftHandX,
+            baseY: handY,
+            x: leftHandX,
+            y: handY,
+            beat: 0, // Left hand is always on beat 0 for phase calculation
+            direction: 1,
+            patternIndex: 0,
+            heldBalls: [],
+            nextThrowTime: Infinity,
+            throwInOuterPlane: true,
+            nextThrowValue: 0,
+          },
+          {
+            id: 1,
+            baseX: rightHandX,
+            baseY: handY,
+            x: rightHandX,
+            y: handY,
+            beat: isSync ? 0 : 1, // Right hand is on beat 1 for async, 0 for sync
+            direction: -1,
+            patternIndex: 1,
+            heldBalls: [],
+            nextThrowTime: Infinity,
+            throwInOuterPlane: true,
+            nextThrowValue: 0,
+          },
+        ];
+
+        state.balls = Array.from({ length: numBalls }, (v, i) => {
+          const hand = state.hands[i % 2];
+          const ball: Ball = {
+            id: i,
+            x: hand.x,
+            y: hand.y,
+            inAir: false,
+            lastThrowTime: 0,
+            throwTime: 0,
+            fromLeft: hand.id === 0,
+            currentThrow: 0,
+            throwIndex: 0,
+            startX: 0,
+            startY: 0,
+            endX: 0,
+            flightDuration: 0,
+            throwHeight: 0,
+            color: `hsl(${
+              (i * ANIMATION_CONFIG.BALL_COLOR_HUE_STEP) % 360
+            }, ${ANIMATION_CONFIG.BALL_COLOR_SATURATION}%, ${
+              ANIMATION_CONFIG.BALL_COLOR_LIGHTNESS
+            }%)`,
+          };
+          hand.heldBalls.push(ball);
+          return ball;
+        });
+
+        if (isSync) {
+          state.hands.forEach((hand) => {
+            if (hand.heldBalls.length > 0) {
+              hand.nextThrowValue = state.pattern[hand.patternIndex % state.pattern.length];
+              hand.nextThrowTime = 0;
+              hand.patternIndex += 1;
+            }
+          });
+        } else {
+          let beat = 0;
+          for (let i = 0; i < numBalls; i++) {
+            const hand = state.hands.find((h) => h.beat === beat % 2);
+            if (hand && hand.heldBalls.length > 0) {
+              hand.nextThrowValue = state.pattern[hand.patternIndex % state.pattern.length];
+              hand.nextThrowTime = beat * state.beatDuration;
+              hand.patternIndex += 2;
+            }
+            beat++;
+          }
+        }
+        setError('');
+      } catch (e: any) {
+        setError(e.message);
+      }
+    };
+
+    const update = (time: number) => {
+      const state = animationState.current;
+
+      // Update hands
+      state.hands.forEach((hand) => {
+        const xRadius = state.isFountain
+          ? ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS
+          : ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS;
+        const yRadius = state.isFountain
+          ? ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS
+          : ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS;
+
+        const period = state.isSync ? state.beatDuration : 2 * state.beatDuration;
+        const phase = ((time % period) / period - hand.beat / 2) * Math.PI * 2 + Math.PI;
+        hand.x =
+          hand.baseX +
+          Math.sin(phase) * xRadius * hand.direction;
+        hand.y =
+          hand.baseY +
+          Math.cos(phase) * yRadius;
+      });
+
+      // Check for throws
+      state.hands.forEach((hand) => {
+        if (hand.heldBalls.length > 0 && time >= hand.nextThrowTime) {
+          const ball = hand.heldBalls.shift();
+          if (!ball) return;
+
+          const throwValue = hand.nextThrowValue;
+          const useOuterPlane = hand.throwInOuterPlane;
+          const mainThrow = Array.isArray(throwValue) ? throwValue[0] : throwValue;
+
+          let landingHand: Hand;
+          if (state.isSync) {
+            const isCross = mainThrow % 2 !== 0;
+            landingHand = isCross ? state.hands.find((h) => h.id !== hand.id)! : hand;
+          } else {
+            const landingBeat = (hand.beat + mainThrow) % 2;
+            landingHand = state.hands.find((h) => h.beat === landingBeat)!;
+          }
+
+          ball.inAir = true;
+          ball.throwTime = time;
+          ball.startX = hand.x; // Throw from the hand's current position
+          ball.isCrossingThrow = mainThrow % 2 !== 0;
+          ball.startY = hand.y;
+          ball.endX = landingHand.baseX;
+          ball.flightDuration = mainThrow * state.beatDuration;
+          ball.throwHeight = Math.min(
+            ball.startY,
+            state.maxHeight * Math.pow(mainThrow / animParams.throwHeight, 2),
+          );
+
+          // The control point for the Bezier curve is offset to create separate planes
+          const planeOffset = 0; // Plane offset is removed.
+          if (ball.isCrossingThrow) {
+            ball.controlX = (ball.startX + ball.endX) / 2 + planeOffset;
+          } else {
+            ball.controlX = planeOffset * hand.direction;
+          }
+
+          hand.nextThrowTime = time + (state.isSync ? state.beatDuration : 2 * state.beatDuration);
+          hand.nextThrowValue = state.pattern[hand.patternIndex % state.pattern.length];
+          hand.throwInOuterPlane = !useOuterPlane;
+          hand.patternIndex += state.isSync ? 1 : 2;
+        }
+      });
+
+      // Update balls
+      state.balls.forEach((ball) => {
+        if (ball.inAir) {
+          const timeInAir = time - ball.throwTime;
+          if (timeInAir >= ball.flightDuration) {
+            ball.inAir = false;
+            const landingHand = state.hands.find((h) => h.baseX === ball.endX);
+            if (landingHand) {
+              landingHand.heldBalls.push(ball);
+              landingHand.heldBalls.sort((a, b) => a.id - b.id);
+            }
+          } else {
+            const progress = timeInAir / ball.flightDuration;
+
+            if (ball.isCrossingThrow) {
+              // For crossing throws, use a Bezier curve with an ease-out effect.
+              const horizontalProgress = Math.sin(progress * (Math.PI / 2)); // Ease-out for crossing throws
+              const p0x = ball.startX; // Start
+              const p1x = ball.controlX!; // Bezier control for plane separation
+              const p2x = ball.endX; // End
+              ball.x = (1 - horizontalProgress) * (1 - horizontalProgress) * p0x + 2 * (1 - horizontalProgress) * horizontalProgress * p1x + horizontalProgress * horizontalProgress * p2x;
+            } else {
+              // For same-hand throws (fountains), create a simple outward arc.
+              ball.x = ball.startX + Math.sin(progress * Math.PI) * ball.controlX!;
+            }
+
+            // For a "1" throw (shower pass), use a very low, gentle arc.
+            // For all other throws, use the standard parabolic arc.
+            if (ball.currentThrow === 1 && ball.isCrossingThrow) {
+              ball.y = ball.startY - ball.throwHeight * 0.5 * Math.sin(progress * Math.PI);
+            } else {
+              ball.y = ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
+            }
+          }
+        } else {
+          const holdingHand = state.hands.find((h) => h.heldBalls.includes(ball));
+          if (holdingHand) {
+            ball.x = holdingHand.x;
+            ball.y = holdingHand.y;
+          }
+        }
+      });
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+      const { balls, hands, elapsedTime } = animationState.current;
+
+      hands.forEach((hand) => {
+        ctx.fillStyle = '#888';
+        ctx.fillRect(
+          hand.x - ANIMATION_CONFIG.HAND_WIDTH / 2,
+          hand.y - ANIMATION_CONFIG.HAND_HEIGHT / 2,
+          ANIMATION_CONFIG.HAND_WIDTH,
+          ANIMATION_CONFIG.HAND_HEIGHT,
+        );
+      });
+
+      balls.forEach((ball) => {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ANIMATION_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = ball.color;
+        ctx.fill();
+        ctx.closePath();
+      });
+    };
+
+    const animationLoop = (currentTime: number) => {
+      const state = animationState.current;
+      const deltaTime = state.lastTime > 0 ? currentTime - state.lastTime : 16.67;
+      state.lastTime = currentTime;
+
+      if (isRunning) {
+        state.elapsedTime += deltaTime;
+        update(state.elapsedTime);
+      }
+
+      draw();
+      animationFrameId = requestAnimationFrame(animationLoop);
+    };
+
+    resetAnimation(siteswap, bpm);
+    animationLoop(0);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [siteswap, bpm, isRunning, animParams]);
+
+  const width = ANIMATION_CONFIG.CANVAS_WIDTH;
+  const height = ANIMATION_CONFIG.CANVAS_HEIGHT;
+
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        backgroundColor: '#1a1a1a',
+        color: '#e0e0e0',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        padding: '20px',
+        minHeight: '100vh',
       }}
     >
-      {/* SVG canvas for animation */}
-      <svg ref={svgReference}></svg>
+      <h1>Siteswap Animator</h1>
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        style={{
+          backgroundColor: '#222',
+          borderRadius: '8px',
+          border: '1px solid #444',
+        }}
+      ></canvas>
+      <div style={{ color: '#ff4d4d', marginTop: '10px', height: '20px', fontWeight: 'bold' }}>
+        {error}
+      </div>
       <div
         style={{
-          marginTop: 24,
           display: 'flex',
-          alignItems: 'center',
-          flexDirection: 'column',
-          gap: 24,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '15px',
+          marginTop: '20px',
+          padding: '15px',
+          backgroundColor: '#2a2a2a',
+          borderRadius: '8px',
+          width: '100%',
+          maxWidth: '600px',
         }}
       >
-        {/* Input and Pause/Play controls */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label htmlFor="siteswap-input">Siteswap:</label>
           <input
-            style={{ textAlign: 'center', width: '100px' }}
-            type='text'
-            value={siteswap.join('')}
-            onChange={(event) => {
-              const { value } = event.target;
-              const newSiteswap = [...value]
-                .map(Number)
-                .filter((n: number) => !Number.isNaN(n) && n > 0);
-              if (newSiteswap.length > 0) {
-                setSiteswap(newSiteswap); // Update siteswap pattern
-                setThrowCount(0); // Reset throw count
-                setSimulatedTime(0); // Reset simulated time
-                setThrowHistory([]); // Reset throw history
-              }
+            id="siteswap-input"
+            type="text"
+            value={siteswap}
+            onChange={(e) => setSiteswap(e.target.value)}
+            style={{
+              backgroundColor: '#333',
+              border: '1px solid #444',
+              color: '#e0e0e0',
+              borderRadius: '4px',
+              padding: '8px',
+              width: '80px',
+              textAlign: 'center',
             }}
           />
           <button
-            onClick={() => {
-              if (timerReference.current) {
-                timerReference.current.stop(); // Stop timer on pause toggle
-              }
-              setPaused((previous) => !previous); // Toggle pause state
+            onClick={() => setIsRunning(!isRunning)}
+            style={{
+              backgroundColor: '#007acc',
+              border: 'none',
+              color: 'white',
+              padding: '8px 15px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
             }}
           >
-            {paused ? 'Play' : 'Pause'}{' '}
-            {/* Button text changes based on state */}
+            {isRunning ? 'Pause' : 'Play'}
           </button>
         </div>
-        {/* Preset pattern buttons */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {[
-            [3],
-            [4],
-            [5],
-            [6],
-            [7],
-            [3, 1],
-            [5, 1],
-            [7, 1],
-            [5, 3, 1],
-            [7, 5, 3, 1],
-          ].map((pattern) => (
-            <button
-              style={{ width: 50 }}
-              onClick={() => {
-                setSiteswap(pattern); // Set siteswap to preset pattern
-                setThrowCount(0); // Reset throw count
-                setSimulatedTime(0); // Reset simulated time
-                setThrowHistory([]); // Reset throw history
-              }}
-              key={pattern.join('')}
-            >
-              {pattern.join('')} {/* Display pattern as button text */}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label htmlFor="bpm-input">BPM:</label>
+          <input
+            id="bpm-input"
+            type="number"
+            value={bpm}
+            onChange={(e) => setBpm(parseInt(e.target.value, 10))}
+            min="30"
+            max="300"
+            style={{
+              backgroundColor: '#333',
+              border: '1px solid #444',
+              color: '#e0e0e0',
+              borderRadius: '4px',
+              padding: '8px',
+              width: '80px',
+              textAlign: 'center',
+            }}
+          />
         </div>
-        {/* Animation control inputs */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'end',
-            gap: 8,
-            height: 100,
-          }}
-        >
-          <label>
-            Dwell Min (ms):
-            <input
-              type='number'
-              value={dwellMin}
-              min='50'
-              max={dwellMax}
-              onChange={(event) =>
-                setDwellMin(Number.parseInt(event.target.value))
-              } // Update dwellMin
-              onBlur={(event) =>
-                setDwellMin(
-                  Math.max(
-                    defaults.dwellMin,
-                    Number.parseInt(event.target.value),
-                  ),
-                )
-              } // Enforce minimum
-              style={{ width: '60px', marginLeft: '5px' }}
-            />
-          </label>
-          <label>
-            Dwell Max (ms):
-            <input
-              type='number'
-              value={dwellMax}
-              min={dwellMin}
-              max='1000'
-              onChange={(event) =>
-                setDwellMax(
-                  Math.min(
-                    defaults.dwellMax,
-                    Number.parseInt(event.target.value),
-                  ),
-                )
-              } // Update dwellMax with cap
-              style={{ width: '60px', marginLeft: '5px' }}
-            />
-          </label>
-          <label>
-            Pace Multiplier:
-            <input
-              type='number'
-              step='0.1'
-              value={paceMultiplier}
-              min='0.1'
-              max='5'
-              onChange={(event) =>
-                setPaceMultiplier(Number.parseFloat(event.target.value))
-              } // Update paceMultiplier
-              style={{ width: '60px', marginLeft: '5px' }}
-            />
-          </label>
-          <label>
-            Speed Limit (ms):
-            <input
-              type='number'
-              value={speedLimit}
-              min='500'
-              max='5000'
-              onChange={(event) =>
-                setSpeedLimit(Number.parseInt(event.target.value))
-              } // Update speedLimit
-              style={{ width: '60px', marginLeft: '5px' }}
-            />
-          </label>
-          <label>
-            Speed Multiplier:
-            <input
-              type='number'
-              step='0.1'
-              value={speedMultiplier}
-              min='0.1'
-              max='5'
-              onChange={(event) =>
-                setSpeedMultiplier(Number.parseFloat(event.target.value))
-              } // Update speedMultiplier
-              style={{ width: '60px', marginLeft: '5px' }}
-            />
-          </label>
-          <label>
-            Throw Limit (0 = infinite):
-            <input
-              type='number'
-              value={throwLimit}
-              min='0'
-              onChange={(event) =>
-                setThrowLimit(Number.parseInt(event.target.value))
-              } // Update throwLimit
-              style={{ width: '60px', marginLeft: '5px' }}
-            />
-          </label>
-          {/* Display throw count and time */}
-          <div>Throw Count: {throwCount}</div>
-          <div>Throw Time: {simulatedTime} ms</div>
-          <div>Throw Speed: {baseThrowDuration}</div>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '10px',
+          marginTop: '10px',
+          padding: '10px',
+          width: '100%',
+          maxWidth: '600px',
+        }}
+      >
+        {[
+          '3', '4', '5', '441', '531', '51', '71',
+          '(4,4)', '(6x,4)', '[34]2'
+        ].map((preset) => (
+          <button
+            key={preset}
+            onClick={() => setSiteswap(preset)}
+            style={{
+              backgroundColor: '#3a3a3a',
+              border: '1px solid #444',
+              color: '#e0e0e0',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            {preset}
+          </button>
+        ))}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px',
+          marginTop: '10px',
+          padding: '15px',
+          backgroundColor: '#2a2a2a',
+          borderRadius: '8px',
+          width: '100%',
+          maxWidth: '600px',
+        }}
+      >
+        <h3 style={{ margin: 0, textAlign: 'center' }}>Animation Parameters</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+          <label htmlFor="hand-separation-slider" style={{ flexBasis: '120px' }}>Hand Separation:</label>
+          <input
+            id="hand-separation-slider"
+            type="range"
+            min="0.1"
+            max="0.8"
+            step="0.01"
+            value={animParams.handSeparation}
+            onChange={(e) =>
+              setAnimParams((prev) => ({
+                ...prev,
+                handSeparation: parseFloat(e.target.value),
+              }))
+            }
+            style={{ flexGrow: 1 }}
+          />
+          <span>{animParams.handSeparation.toFixed(2)}</span>
         </div>
-        <ThrowHistory history={throwHistory} limit={numberBalls * 3} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+          <label htmlFor="throw-height-slider" style={{ flexBasis: '120px' }}>Throw Height:</label>
+          <input
+            id="throw-height-slider"
+            type="range"
+            min="1"
+            max="10"
+            step="0.1"
+            value={animParams.throwHeight}
+            onChange={(e) =>
+              setAnimParams((prev) => ({
+                ...prev,
+                throwHeight: parseFloat(e.target.value),
+              }))
+            }
+            style={{ flexGrow: 1 }}
+          />
+          <span>{animParams.throwHeight.toFixed(1)}</span>
+        </div>
       </div>
     </div>
   );

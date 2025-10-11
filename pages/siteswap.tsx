@@ -1,20 +1,20 @@
-'use client';
-
-import Head from 'next/head';
-import styles from '../styles/Home.module.css';
 import { NextSeo } from 'next-seo';
-import Footer from '../components/Footer';
+import Head from 'next/head';
 import SiteswapAnimation from '../components/juggling/SiteswapAnimation';
 
 const SEO = {
-  title: 'Siteswap',
-  description: 'Animate juggling siteswaps',
+  title: 'React Siteswap Animator',
+  description:
+    'A high-performance juggling animator for standard, synchronous, and multiplex siteswaps, built with React.',
   url: 'https://joeymurphy.me/siteswap',
 };
 
-export default function Home() {
+/**
+ * A React page that hosts the SiteswapAnimation component.
+ */
+export default function SiteswapPage() {
   return (
-    <div className={styles.container}>
+    <>
       <Head>
         <link rel='icon' href='/favicon-16x16.png' />
       </Head>
@@ -27,10 +27,7 @@ export default function Home() {
           description: SEO.description,
         }}
       />
-      <main className={styles.main}>
-        <SiteswapAnimation />
-      </main>
-      <Footer />
-    </div>
+      <SiteswapAnimation />
+    </>
   );
 }

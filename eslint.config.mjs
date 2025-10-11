@@ -1,5 +1,5 @@
-import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
+import js from '@eslint/js';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 
 const compat = new FlatCompat({
@@ -8,12 +8,25 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
-const eslintConfig = [{
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"]
-}, eslintPluginUnicorn.configs.recommended, {
-  rules: {
-    'unicorn/filename-case': 'off',
+const eslintConfig = [
+  {
+    ignores: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'next-env.d.ts',
+    ],
   },
-}, ...compat.extends('eslint:recommended'), ...compat.extends('next/typescript'), ...compat.extends('next/core-web-vitals'), ...compat.extends('prettier')];
+  eslintPluginUnicorn.configs.recommended,
+  {
+    rules: {
+      'unicorn/filename-case': 'off',
+    },
+  },
+  ...compat.extends('eslint:recommended'),
+  ...compat.extends('next/typescript'),
+  ...compat.extends('next/core-web-vitals'),
+];
 
 export default eslintConfig;

@@ -1,6 +1,6 @@
 import { RefObject, useEffect } from 'react';
-import { ANIMATION_CONFIG, Ball, Hand } from './animation-types';
-import { parseSiteswap } from './siteswap-parser';
+import { ANIMATION_CONFIG, Ball, Hand, Throw } from './animation-types';
+import { ParsedSiteswap, parseSiteswap } from './siteswap-parser';
 
 interface JugglingAnimationProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -21,7 +21,7 @@ interface JugglingAnimationProps {
   animationState: RefObject<{
     balls: Ball[];
     hands: Hand[];
-    pattern: (number | number[])[];
+    pattern: ParsedSiteswap['pattern'];
     numBalls: number;
     isSync: boolean;
     isFountain: boolean;
@@ -32,6 +32,9 @@ interface JugglingAnimationProps {
   }>;
   setError: (message: string) => void;
 }
+
+const isThrow = (t: unknown): t is Throw =>
+  typeof t === 'object' && t !== null && 'value' in t;
 
 export const useJugglingAnimation = ({
   canvasRef,
@@ -69,9 +72,12 @@ export const useJugglingAnimation = ({
         // A "fountain" pattern consists entirely of even-numbered throws.
         state.isFountain = pattern.every((throwValue) => {
           if (Array.isArray(throwValue)) {
-            return throwValue.every((t) => t > 0 && t % 2 === 0);
+            return throwValue.every((t) => t.value > 0 && t.value % 2 === 0);
           }
-          return throwValue > 0 && throwValue % 2 === 0;
+          if (isThrow(throwValue)) {
+            return throwValue.value > 0 && throwValue.value % 2 === 0;
+          }
+          return false;
         });
 
         state.elapsedTime = 0;
@@ -98,7 +104,7 @@ export const useJugglingAnimation = ({
             heldBalls: [],
             nextThrowTime: Infinity,
             throwInOuterPlane: true,
-            nextThrowValue: 0,
+            nextThrowValue: { value: 0 },
           },
           {
             id: 1,
@@ -112,7 +118,7 @@ export const useJugglingAnimation = ({
             heldBalls: [],
             nextThrowTime: Infinity,
             throwInOuterPlane: true,
-            nextThrowValue: 0,
+            nextThrowValue: { value: 0 },
           },
         ];
 
@@ -162,7 +168,12 @@ export const useJugglingAnimation = ({
         } else {
           let startBeat = 0;
           while (
-            pattern[startBeat % pattern.length] === 0 &&
+            // Only skip beats with a throw value of 0
+            // This check needs to handle both single Throw objects and arrays of Throws (multiplex)
+            (Array.isArray(pattern[startBeat % pattern.length])
+              ? pattern[startBeat % pattern.length].every((t) => t.value === 0)
+              : isThrow(pattern[startBeat % pattern.length]) &&
+                pattern[startBeat % pattern.length].value === 0) &&
             startBeat < pattern.length
           ) {
             startBeat++;
@@ -172,8 +183,10 @@ export const useJugglingAnimation = ({
           for (let index = 0; index < numBalls; index++) {
             const hand = state.hands.find((h) => h.beat === beat % 2);
             if (hand && hand.heldBalls.length > 0) {
-              hand.nextThrowValue = state.pattern[beat % state.pattern.length];
+              hand.nextThrowValue =
+                state.pattern[hand.patternIndex % state.pattern.length];
               hand.nextThrowTime = beat * state.beatDuration;
+              hand.patternIndex += 2;
             }
             beat++;
           }
@@ -215,25 +228,38 @@ export const useJugglingAnimation = ({
             if (!ball) continue;
             const useOuterPlane = hand.throwInOuterPlane;
             let landingHand: Hand;
+            let isCross: boolean;
+
             if (state.isSync) {
-              const isCross = currentThrow % 2 !== 0;
+              isCross = isThrow(throwValue)
+                ? throwValue.isCrossing ?? false
+                : false;
               landingHand = isCross
                 ? state.hands.find((h) => h.id !== hand.id)!
                 : hand;
             } else {
-              const landingBeat = (hand.beat + currentThrow) % 2;
+              isCross = isThrow(currentThrow)
+                ? currentThrow.isCrossing ?? false
+                : false;
+              const landingBeat = (hand.beat + currentThrow.value) % 2;
               landingHand = state.hands.find((h) => h.beat === landingBeat)!;
             }
+
             ball.inAir = true;
             ball.throwTime = time;
             ball.startX = hand.x;
-            ball.isCrossingThrow = currentThrow % 2 !== 0;
+            ball.isCrossingThrow = isCross;
             ball.startY = hand.y;
             ball.endX = landingHand.baseX;
-            ball.flightDuration = currentThrow * state.beatDuration;
+            ball.flightDuration = isThrow(currentThrow)
+              ? currentThrow.value * state.beatDuration
+              : 0;
             const calculatedHeight =
               state.maxHeight *
-              Math.pow(currentThrow / 5, 2) *
+              Math.pow(
+                (isThrow(currentThrow) ? currentThrow.value : 0) / 5,
+                2,
+              ) *
               (animParams.throwHeight / 5);
             ball.throwHeight = Math.min(
               calculatedHeight,

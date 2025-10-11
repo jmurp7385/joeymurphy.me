@@ -19,6 +19,11 @@ export interface Ball {
   color: string; // Color of the ball
 }
 
+export interface Throw {
+  value: number;
+  isCrossing?: boolean;
+}
+
 /** Interface for a hand object in the juggling simulation. */
 export interface Hand {
   id: number; // 0 for left, 1 for right
@@ -32,7 +37,7 @@ export interface Hand {
   heldBalls: Ball[]; // An array of balls currently held by this hand
   nextThrowTime: number; // The time (in ms) for the next scheduled throw
   throwInOuterPlane: boolean; // Toggles for alternating throw planes (not currently used)
-  nextThrowValue: number | number[]; // The siteswap value of the next throw
+  nextThrowValue: Throw | Throw[]; // The siteswap value of the next throw
 }
 
 export const ANIMATION_CONFIG = {

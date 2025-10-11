@@ -38,7 +38,7 @@ A key property of a valid siteswap is that the **average of the throw numbers eq
 
 This is the most common type of pattern, where hands throw one after another (alternating). The siteswap string is read from left to right, with each number representing a throw from alternating hands.
 
-#### Example: `531` (a 3-ball pattern)
+### Example: `531` (a 3-ball pattern)
 
 1. The first hand throws a `5`.
 2. The second hand throws a `3`.
@@ -53,7 +53,7 @@ In sync patterns, both hands throw at the same time on every beat. They are encl
 
 * **Notation:** `(left_throw, right_throw)`
 
-#### Example: `(4,4)` (a 4-ball pattern)
+### Example: `(4,4)` (a 4-ball pattern)
 
 On every beat, both hands throw a `4` to themselves.
 
@@ -61,10 +61,10 @@ On every beat, both hands throw a `4` to themselves.
 
 An `x` can be added after a throw number to indicate that it is a crossing throw, even if the number is even. This is useful for creating patterns where balls cross paths.
 
-#### Example: `(6x,4)` (a 5-ball pattern)
+#### Example: `(6x,4x)` (a 5-ball pattern)
 
 * On every beat, the left hand throws a high crossing `6x`.
-* Simultaneously, the right hand throws a `4` to itself.
+* Simultaneously, the right hand throws a crossing `4x` .
 
 ---
 
@@ -72,15 +72,15 @@ An `x` can be added after a throw number to indicate that it is a crossing throw
 
 A multiplex pattern involves throwing more than one ball from the same hand at the same time. These throws are enclosed in square brackets.
 
-*   **Notation:** `[throw1throw2]`
+* **Notation:** `[throw1throw2]` (e.g., `[34]`)
 
-#### Example: `[33]0` (a 3-ball pattern)
+### Example: `[34]1` (a 4-ball pattern)
 
-1. The first hand throws two balls simultaneously as `3`s (crossing throws).
-2. The second hand does nothing (a `0` throw).
+1. The first hand throws two balls simultaneously: a `3` (crossing) and a `4` (self-throw).
+2. The second hand throws a `1` (a quick crossing pass).
 3. The pattern repeats.
 
-The number of balls is calculated as before: (`3` + `3` + `0`) / 2 = 6 / 2 = **3 balls**.
+The number of balls is calculated as before: (`3` + `4` + `1`) / 2 = 8 / 2 = **4 balls**.
 
 ---
 
@@ -90,4 +90,4 @@ Experiment with these patterns in the animator:
 
 * **Asynchronous:** `3`, `4`, `5`, `531`, `441`, `91`
 * **Synchronous:** `(4,4)`, `(6,6)`, `(6x,4)`
-*   **Multiplex:** `[34]1`
+* **Multiplex:** `[34]1`, `[33]0`

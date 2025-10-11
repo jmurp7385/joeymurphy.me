@@ -4,11 +4,12 @@
  * Supports standard asynchronous, synchronous, and multiplex notations.
  */
 
+import { Throw } from './animation-types';
 /**
  * Represents the successfully parsed components of a siteswap pattern.
  */
 export interface ParsedSiteswap {
-  pattern: (number | number[])[];
+  pattern: (Throw | Throw[])[];
   numBalls: number;
   isSync: boolean;
 }
@@ -28,7 +29,7 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
   siteswapString = siteswapString.toLowerCase().replaceAll(/\s/g, '');
   if (!siteswapString) throw new Error('Siteswap cannot be empty.');
 
-  const throws: (number | number[])[] = [];
+  const throws: (Throw | Throw[])[] = [];
   let remainingString = siteswapString;
 
   // Manually tokenize the string to handle different pattern types.
@@ -38,9 +39,19 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
       if (endIndex === -1)
         throw new Error('Mismatched parentheses in sync pattern.');
       const content = remainingString.slice(1, endIndex).split(',');
+      const leftThrow = content[0];
+      const rightThrow = content[1];
+      const leftValue = Number.parseInt(leftThrow.replace('x', ''), 36);
+      const rightValue = Number.parseInt(rightThrow.replace('x', ''), 36);
+      const leftIsCross = leftValue % 2 !== 0 || leftThrow.includes('x');
+      const rightIsCross = rightValue % 2 !== 0 || rightThrow.includes('x');
+      if (leftIsCross !== rightIsCross)
+        throw new Error(
+          'Invalid sync pattern: throws must have the same landing hand (both crossing or both not crossing).',
+        );
       throws.push(
-        Number.parseInt(content[0].replace('x', ''), 36),
-        Number.parseInt(content[1].replace('x', ''), 36),
+        { value: leftValue, isCrossing: leftIsCross },
+        { value: rightValue, isCrossing: rightIsCross },
       );
       remainingString = remainingString.slice(Math.max(0, endIndex + 1));
     } else if (remainingString.startsWith('[')) {
@@ -48,18 +59,26 @@ export const parseSiteswap = (siteswapString: string): ParsedSiteswap => {
       if (endIndex === -1)
         throw new Error('Mismatched brackets in multiplex pattern.');
       const content = remainingString.slice(1, endIndex);
-      throws.push([...content].map((t) => Number.parseInt(t, 36)));
+      throws.push(
+        [...content].map((t) => {
+          const value = Number.parseInt(t, 36);
+          return { value, isCrossing: value % 2 !== 0 };
+        }),
+      );
       remainingString = remainingString.slice(Math.max(0, endIndex + 1));
     } else {
       const char = remainingString[0];
-      throws.push(Number.parseInt(char, 36));
+      const value = Number.parseInt(char, 36);
+      throws.push({ value, isCrossing: value % 2 !== 0 });
       remainingString = remainingString.slice(1);
     }
   }
 
   const isSync = siteswapString.includes('(');
   // A valid siteswap's average throw value must be an integer, which equals the number of balls.
-  const sum = throws.flat().reduce((a, b) => a + b, 0);
+  const sum = throws
+    .flat()
+    .reduce((accumulator: number, t: Throw) => accumulator + t.value, 0);
   const numberBeats = throws.length;
   if (sum === 0 || numberBeats === 0 || sum % numberBeats !== 0) {
     throw new Error('Invalid siteswap pattern.');

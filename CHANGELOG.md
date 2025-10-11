@@ -7,6 +7,9 @@
 ## 0.7.0
 
 - Siteswap (Alpha)
+  - vanilla, sync, multiplex, and crossing sync throws
+  - ball and hand customization
+  - temp customization
 
 ## 0.6.1
 

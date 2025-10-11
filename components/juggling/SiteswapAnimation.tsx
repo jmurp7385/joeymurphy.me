@@ -123,34 +123,33 @@ export default function SiteswapAnimation() {
         siteswapString = siteswapString.toLowerCase().replaceAll(/\s/g, '');
         if (!siteswapString) return undefined;
 
-        const isSync = siteswapString.includes('(');
-        const pattern = isSync ? /\((\w+),(\w+)\)/g : /(\[[\da-z]+\]|[\da-z])/g;
-
         const throws: (number | number[])[] = [];
-        let match;
-        while ((match = pattern.exec(siteswapString)) !== null) {
-          if (isSync) {
-            // For sync patterns like (4,4), push both throws into the array.
-            throws.push(Number.parseInt(match[1].replace('x', ''), 36), Number.parseInt(match[2].replace('x', ''), 36));
+        let remainingString = siteswapString;
+
+        while (remainingString.length > 0) {
+          if (remainingString.startsWith('(')) {
+            const end = remainingString.indexOf(')');
+            const content = remainingString.substring(1, end).split(',');
+            throws.push(Number.parseInt(content[0].replace('x', ''), 36), Number.parseInt(content[1].replace('x', ''), 36));
+            remainingString = remainingString.slice(Math.max(0, end + 1));
+          } else if (remainingString.startsWith('[')) {
+            const end = remainingString.indexOf(']');
+            const content = remainingString.substring(1, end);
+            throws.push([...content].map((t) => Number.parseInt(t, 36)));
+            remainingString = remainingString.slice(Math.max(0, end + 1));
           } else {
-            const part = match[1];
-            if (part.startsWith('[')) {
-              // For multiplex patterns like [34]2, parse each throw inside the brackets.
-              throws.push(
-                [...part]
-                  .slice(1, -1) // Remove brackets before parsing
-                  .map((t) => Number.parseInt(t, 36)),
-              );
-            } else {
-              throws.push(Number.parseInt(part, 36));
-            }
+            const char = remainingString[0];
+            throws.push(Number.parseInt(char, 36));
+            remainingString = remainingString.slice(1);
           }
         }
+
         // The number of balls is the average of all throw values in the pattern.
         const sum = throws.flat().reduce((a, b) => a + b, 0);
-        if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
+        const numberBeats = throws.length;
+        if (sum === 0 || numberBeats === 0 || sum % numberBeats !== 0)
           return undefined;
-        return { numBalls: sum / throws.length };
+        return { numBalls: sum / numberBeats };
       } catch {
         return undefined;
       }
@@ -212,41 +211,34 @@ export default function SiteswapAnimation() {
       siteswapString = siteswapString.toLowerCase().replaceAll(/\s/g, '');
       if (!siteswapString) throw new Error('Siteswap cannot be empty.');
 
-      const isSync = siteswapString.includes('(');
       const throws: (number | number[])[] = [];
+      let remainingString = siteswapString;
 
-      if (isSync) {
-        const syncPattern = /\((\w+),(\w+)\)/g;
-        let match;
-        while ((match = syncPattern.exec(siteswapString)) !== null) {
-          const leftThrow = match[1].replace('x', '');
-          const rightThrow = match[2].replace('x', '');
-          throws.push(Number.parseInt(leftThrow, 36), Number.parseInt(rightThrow, 36));
-        }
-        if (throws.length === 0)
-          throw new Error('Invalid sync siteswap format.');
-      } else {
-        const asyncPattern = /(\[[\da-z]+\]|[\da-z])/g;
-        let match;
-        while ((match = asyncPattern.exec(siteswapString)) !== null) {
-          const part = match[1];
-          if (part.startsWith('[')) {
-            throws.push(
-              [...part]
-                .slice(1, -1) // Remove brackets before parsing
-                .map((t) => Number.parseInt(t, 36)),
-            );
-          } else {
-            throws.push(Number.parseInt(part, 36));
-          }
+      while (remainingString.length > 0) {
+        if (remainingString.startsWith('(')) {
+          const end = remainingString.indexOf(')');
+          const content = remainingString.substring(1, end).split(',');
+          throws.push(Number.parseInt(content[0].replace('x', ''), 36), Number.parseInt(content[1].replace('x', ''), 36));
+          remainingString = remainingString.slice(Math.max(0, end + 1));
+        } else if (remainingString.startsWith('[')) {
+          const end = remainingString.indexOf(']');
+          const content = remainingString.substring(1, end);
+          throws.push([...content].map((t) => Number.parseInt(t, 36)));
+          remainingString = remainingString.slice(Math.max(0, end + 1));
+        } else {
+          const char = remainingString[0];
+          throws.push(Number.parseInt(char, 36));
+          remainingString = remainingString.slice(1);
         }
       }
 
+      const isSync = siteswapString.includes('(');
       // A valid siteswap's average throw value must be an integer, which equals the number of balls.
       const sum = throws.flat().reduce((a, b) => a + b, 0);
-      if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
+      const numberBeats = throws.length;
+      if (sum === 0 || numberBeats === 0 || sum % numberBeats !== 0)
         throw new Error('Invalid siteswap pattern.');
-      const numberBalls = sum / throws.length;
+      const numberBalls = sum / numberBeats;
       return { pattern: throws, numBalls: numberBalls, isSync };
     };
 
@@ -418,51 +410,60 @@ export default function SiteswapAnimation() {
       // --- 2. Check for and Execute Throws ---
       for (const hand of state.hands) {
         if (hand.heldBalls.length > 0 && time >= hand.nextThrowTime) {
-          const ball = hand.heldBalls.shift();
-          if (!ball) continue;
-
           const throwValue = hand.nextThrowValue;
-          const useOuterPlane = hand.throwInOuterPlane;
-          const mainThrow = Array.isArray(throwValue)
-            ? throwValue[0]
-            : throwValue;
+          const throwsToExecute = Array.isArray(throwValue) ? throwValue : [throwValue];
 
-          let landingHand: Hand;
-          // Determine the catching hand. In siteswap, odd throws cross to the other hand,
-          // while even throws are caught by the same hand.
-          if (state.isSync) {
-            const isCross = mainThrow % 2 !== 0;
-            landingHand = isCross
-              ? state.hands.find((h) => h.id !== hand.id)!
-              : hand;
-          } else {
-            const landingBeat = (hand.beat + mainThrow) % 2;
-            landingHand = state.hands.find((h) => h.beat === landingBeat)!;
+          for (const currentThrow of throwsToExecute) {
+            if (hand.heldBalls.length === 0) break; // Stop if no more balls to throw
+
+            const ball = hand.heldBalls.shift();
+            if (!ball) continue;
+
+            const useOuterPlane = hand.throwInOuterPlane;
+
+            let landingHand: Hand;
+            // Determine the catching hand. In siteswap, odd throws cross to the other hand,
+            // while even throws are caught by the same hand.
+            if (state.isSync) {
+              const isCross = currentThrow % 2 !== 0;
+              landingHand = isCross
+                ? state.hands.find((h) => h.id !== hand.id)!
+                : hand;
+            } else {
+              const landingBeat = (hand.beat + currentThrow) % 2;
+              landingHand = state.hands.find((h) => h.beat === landingBeat)!;
+            }
+
+            ball.inAir = true;
+            ball.throwTime = time;
+            ball.startX = hand.x; // Throw from the hand's current position
+            ball.isCrossingThrow = currentThrow % 2 !== 0;
+            ball.startY = hand.y;
+            ball.endX = landingHand.baseX;
+            ball.flightDuration = currentThrow * state.beatDuration;
+            // Throw height is proportional to the square of the throw value, simulating physics.
+            const calculatedHeight =
+              state.maxHeight *
+              Math.pow(currentThrow / 5, 2) *
+              (animParams.throwHeight / 5);
+            ball.throwHeight = Math.min(
+              calculatedHeight,
+              // ensure ball height padding of 3 ball radii
+              ball.startY - ANIMATION_CONFIG.BALL_RADIUS * 3,
+            );
+
+            // The control point for the Bezier curve is used to create the arc of the throw.
+            const planeOffset = 0; // Plane offset is removed.
+            ball.controlX = ball.isCrossingThrow ? (ball.startX + ball.endX) / 2 + planeOffset : planeOffset * hand.direction;
+
+            // For multiplex, we only toggle the plane once per hand throw
+            if (throwsToExecute.indexOf(currentThrow) === throwsToExecute.length - 1) {
+              hand.throwInOuterPlane = !useOuterPlane;
+            }
           }
 
-          ball.inAir = true;
-          ball.throwTime = time;
-          ball.startX = hand.x; // Throw from the hand's current position
-          ball.isCrossingThrow = mainThrow % 2 !== 0;
-          ball.startY = hand.y;
-          ball.endX = landingHand.baseX;
-          ball.flightDuration = mainThrow * state.beatDuration;
-          // Throw height is proportional to the square of the throw value, simulating physics.
-          const calculatedHeight =
-            state.maxHeight *
-            Math.pow(mainThrow / 5, 2) *
-            (animParams.throwHeight / 5);
-          ball.throwHeight = Math.min(
-            calculatedHeight,
-            // ensure ball height padding of 3 ball radii
-            ball.startY - ANIMATION_CONFIG.BALL_RADIUS * 3,
-          );
-
-          // The control point for the Bezier curve is used to create the arc of the throw.
-          const planeOffset = 0; // Plane offset is removed.
-          ball.controlX = ball.isCrossingThrow ? (ball.startX + ball.endX) / 2 + planeOffset : planeOffset * hand.direction;
-
           // Schedule the next throw for this hand.
+          // This happens once per beat, even for multiplex throws.
           // Sync patterns throw on every beat. Async patterns have each hand throw every 2 beats.
           if (state.isSync) {
             const currentBeat = Math.floor(time / state.beatDuration);
@@ -472,7 +473,6 @@ export default function SiteswapAnimation() {
           }
           hand.nextThrowValue =
             state.pattern[hand.patternIndex % state.pattern.length];
-          hand.throwInOuterPlane = !useOuterPlane;
           // Each hand's pattern index must advance by 2 to stay on its "track" (e.g., left: 0, 2, 4...; right: 1, 3, 5...).
           hand.patternIndex += 2; // Always advance by 2 for both sync and async.
         }
@@ -736,7 +736,7 @@ export default function SiteswapAnimation() {
             '(6,6)',
             '(8,8)',
             '(6x,4)',
-            '[34]2',
+            '[34]1',
           ].map((preset) => (
             <button
               key={preset}

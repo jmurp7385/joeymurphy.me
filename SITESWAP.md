@@ -72,15 +72,15 @@ An `x` can be added after a throw number to indicate that it is a crossing throw
 
 A multiplex pattern involves throwing more than one ball from the same hand at the same time. These throws are enclosed in square brackets.
 
-* **Notation:** `[throw1, throw2]`
+*   **Notation:** `[throw1throw2]`
 
-#### Example: `[34]2` (a 3-ball pattern)
+#### Example: `[33]0` (a 3-ball pattern)
 
-1. The first hand throws two balls simultaneously: a `3` (crossing) and a `4` (self-throw).
-2. The second hand throws a `2` (a hold).
+1. The first hand throws two balls simultaneously as `3`s (crossing throws).
+2. The second hand does nothing (a `0` throw).
 3. The pattern repeats.
 
-The number of balls is calculated as before: (`3` + `4` + `2`) / 3 = 9 / 3 = **3 balls**.
+The number of balls is calculated as before: (`3` + `3` + `0`) / 2 = 6 / 2 = **3 balls**.
 
 ---
 
@@ -90,4 +90,4 @@ Experiment with these patterns in the animator:
 
 * **Asynchronous:** `3`, `4`, `5`, `531`, `441`, `91`
 * **Synchronous:** `(4,4)`, `(6,6)`, `(6x,4)`
-* **Multiplex:** `[34]2`
+*   **Multiplex:** `[34]1`

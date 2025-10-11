@@ -1,7 +1,7 @@
 // pages/index.tsx
 import * as d3 from 'd3';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Widget } from '../components/Widget';
+import { Widget } from '../components/Widget/Widget';
 import styles from '../styles/Visualizer.module.css';
 
 const ALL_WIDGET_TYPES: WidgetType[] = ['playback', 'presets', 'customization'];

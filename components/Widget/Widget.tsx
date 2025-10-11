@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode } from 'react';
-import styles from '../styles/Widget.module.css';
-import { shouldShowWidget } from '../utilities/music-visualizer';
+import styles from '../../styles/Widget.module.css';
+import { shouldShowWidget } from './utilities';
 
 interface WidgetProps<T extends string> {
   widget: T;

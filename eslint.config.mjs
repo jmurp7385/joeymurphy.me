@@ -8,17 +8,12 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
-const eslintConfig = [
-  eslintPluginUnicorn.configs.recommended,
-  {
-    rules: {
-      'unicorn/filename-case': 'off',
-    },
+const eslintConfig = [{
+  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"]
+}, eslintPluginUnicorn.configs.recommended, {
+  rules: {
+    'unicorn/filename-case': 'off',
   },
-  ...compat.extends('eslint:recommended'),
-  ...compat.extends('next/typescript'),
-  ...compat.extends('next/core-web-vitals'),
-  ...compat.extends('prettier'),
-];
+}, ...compat.extends('eslint:recommended'), ...compat.extends('next/typescript'), ...compat.extends('next/core-web-vitals'), ...compat.extends('prettier')];
 
 export default eslintConfig;

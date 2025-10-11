@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "next": "next",
-    "lint": "next lint",
+    "lint": "eslint .",
     "corepack": "corepack enable",
     "upgrade": "yarn dlx @next/codemod@canary upgrade latest"
   },

@@ -574,7 +574,7 @@ export default function SiteswapAnimation() {
         minHeight: '100vh',
       }}
     >
-      <h1>Siteswap Animator</h1>
+      <h1>Siteswap Animator (Alpha)</h1>
       <canvas
         ref={canvasRef}
         width={width}

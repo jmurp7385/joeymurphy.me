@@ -568,10 +568,10 @@ export default function SiteswapAnimation() {
         alignItems: 'center',
         backgroundColor: '#1a1a1a',
         color: '#e0e0e0',
+        width: '100%',
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         padding: '20px',
-        minHeight: '100vh',
       }}
     >
       <h1>Siteswap Animator (Alpha)</h1>
@@ -601,12 +601,12 @@ export default function SiteswapAnimation() {
           display: 'flex',
           gap: '15px',
           marginTop: '20px',
-          padding: '15px',
-          flexDirection: 'row',
-          justifyContent: 'space-around',
+          padding: '10px',
           backgroundColor: '#2a2a2a',
+          flexWrap: 'wrap',
           borderRadius: '8px',
           width: '100%',
+          justifyContent: 'center',
           maxWidth: width,
         }}
       >
@@ -724,7 +724,6 @@ export default function SiteswapAnimation() {
           style={{
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
-            width: '40%',
             maxWidth: width,
           }}
         >
@@ -805,14 +804,11 @@ export default function SiteswapAnimation() {
           backgroundColor='#2a2a2a'
           style={{
             flexGrow: '1',
-            display: 'flex',
-            flexDirection: 'column',
             gap: '15px',
             marginTop: '10px',
             padding: '15px',
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
-            width: '40%',
             maxWidth: width,
           }}
         >
@@ -884,11 +880,8 @@ export default function SiteswapAnimation() {
           backgroundColor='#2a2a2a'
           style={{
             flexGrow: '1',
-            display: 'flex',
-            flexDirection: 'column',
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
-            width: '40%',
             maxWidth: width,
           }}
         >

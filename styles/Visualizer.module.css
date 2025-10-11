@@ -1,3 +1,4 @@
+/* For use with MusicVisualizer page */
 .container {
   padding: 24px;
   width: 100%;
@@ -10,14 +11,6 @@
   box-sizing: border-box; /* Include padding in width */
 }
 
-.widgetContainer {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box; /* Include padding in width */
-  display: flex;
-  flex-direction: row;
-}
-
 @media screen and (max-width: 768px) {
   .container {
     padding: 8px;
@@ -27,11 +20,11 @@
   }
 }
 
+/* For use with MusicVisualizer page */
 .customizationItem {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
 }
 
 .customColors {
@@ -47,6 +40,7 @@
   gap: 8px;
 }
 
+/* For use with MusicVisualizer page */
 .playbackControls {
   margin: 8px 0;
   padding: 12px;
@@ -61,6 +55,7 @@
   box-sizing: border-box;
 }
 
+/* For use with MusicVisualizer page */
 .volumeControl,
 .seekControl {
   display: flex;
@@ -68,6 +63,7 @@
   gap: 8px;
 }
 
+/* For use with MusicVisualizer page */
 .canvas {
   border: 1px solid #333;
   background: #000;
@@ -78,6 +74,7 @@
   box-sizing: border-box;
 }
 
+/* For use with MusicVisualizer page */
 .error {
   color: red;
   margin: 16px 0;
@@ -88,14 +85,17 @@
   box-sizing: border-box;
 }
 
-.fileInput {
-
-}
-
+/* For use with MusicVisualizer page */
 .input {
   text-transform: capitalize;
   background-color: #333;
   color: #fff;
   padding: 4px 8px;
   border-radius: 4px;
+  height: fit-content;
+}
+
+.widgetContainer {
+  display: flex;
+  gap: 16px;
 }

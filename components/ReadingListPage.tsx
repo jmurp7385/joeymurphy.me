@@ -9,14 +9,14 @@ export interface Book {
   link?: string;
 }
 
-export interface ReadingListProps {
+export interface ReadingListProperties {
   title: string;
   description: string;
   books: Book[];
 }
 
-export function ReadingListPage(props: ReadingListProps) {
-  const { title, description, books } = props;
+export function ReadingListPage(properties: ReadingListProperties) {
+  const { title, description, books } = properties;
 
   return (
     <main className={styles.main}>

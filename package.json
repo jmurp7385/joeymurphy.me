@@ -1,6 +1,6 @@
 {
   "name": "joeymurphy.me",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "main": "./pages/index.tsx",
   "scripts": {
@@ -8,13 +8,13 @@
     "build": "next build",
     "start": "next start",
     "next": "next",
-    "lint": "next lint",
+    "lint": "eslint .",
     "corepack": "corepack enable",
     "upgrade": "yarn dlx @next/codemod@canary upgrade latest"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
-    "babel-plugin-react-compiler": "^19.1.0-rc.3",
+    "babel-plugin-react-compiler": "^1.0.0",
     "d3": "^7.9.0",
     "next": "15.5.4",
     "next-seo": "^6.8.0",
@@ -29,12 +29,13 @@
     "@iconify-icons/cib": "^1.2.4",
     "@iconify/react": "^6.0.2",
     "@types/d3": "^7.4.3",
-    "@types/node": "^24.6.2",
+    "@types/node": "^24.7.1",
     "@types/p5": "^1.7.6",
-    "@types/react": "19.2.0",
-    "@types/react-dom": "19.2.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.1",
     "eslint": "9.37.0",
     "eslint-config-next": "15.5.4",
+    "eslint-plugin-unicorn": "^61.0.2",
     "typescript": "~5.9.3"
   },
   "browserslist": [

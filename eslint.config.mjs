@@ -1,16 +1,45 @@
 import { FlatCompat } from '@eslint/eslintrc';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import js from '@eslint/js';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
+  // import.meta.dirname is available after Node.js v20.11.0
+  baseDirectory: import.meta.dirname,
+  recommendedConfig: js.configs.recommended,
 });
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  {
+    ignores: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'next-env.d.ts',
+    ],
+  },
+  eslintPluginUnicorn.configs.recommended,
+  {
+    rules: {
+      'unicorn/filename-case': 'off',
+      'unicorn/prevent-abbreviations': [
+        'error',
+        {
+          replacements: {
+            props: false,
+            params: false,
+            args: false,
+            ref: false,
+            refs: false,
+            env: false,
+          },
+        },
+      ],
+    },
+  },
+  ...compat.extends('eslint:recommended'),
+  ...compat.extends('next/typescript'),
+  ...compat.extends('next/core-web-vitals'),
 ];
 
 export default eslintConfig;

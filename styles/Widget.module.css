@@ -1,11 +1,11 @@
 .controlContainer {
   margin: 16px;
   padding: 16px;
+  box-sizing: border-box;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
   flex-direction: column;
-  border-radius: 8px;
   flex-shrink: 1;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
   width: 100%;
@@ -16,6 +16,10 @@
   .controlContainer {
     flex-direction: row;
     margin: 4px 0;
+  }
+
+  .widgetContainer {
+    flex-direction: column;
   }
 }
 

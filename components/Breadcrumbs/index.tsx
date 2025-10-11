@@ -8,10 +8,10 @@ import styles from './Breadcrumbs.module.css';
  * @param str
  * @returns
  */
-export function transformLabelHuman(str: string): string {
-  return str
+export function transformLabelHuman(string_: string): string {
+  return string_
     .replace('-', ' ')
-    .replace(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
+    .replaceAll(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
 }
 
 /**
@@ -46,11 +46,8 @@ const convertBreadcrumb = (
   }
 
   if (replaceCharacterList) {
-    for (let i = 0; i < replaceCharacterList.length; i++) {
-      transformedTitle = transformedTitle.replaceAll(
-        replaceCharacterList[i].from,
-        replaceCharacterList[i].to,
-      );
+    for (const element of replaceCharacterList) {
+      transformedTitle = transformedTitle.replaceAll(element.from, element.to);
     }
   }
 
@@ -76,7 +73,7 @@ export interface CharacterMap {
   to: string;
 }
 
-export interface BreadcrumbsProps {
+export interface BreadcrumbsProperties {
   /** If true, the default styles are used.
    * Make sure to import the CSS in _app.js
    * Example: true Default: false */
@@ -125,7 +122,7 @@ export interface BreadcrumbsProps {
   activeItemClassName?: string;
 }
 
-const defaultProps: BreadcrumbsProps = {
+const defaultProps: BreadcrumbsProperties = {
   useDefaultStyle: false,
   rootLabel: 'Home',
   omitRootLabel: false,
@@ -169,21 +166,21 @@ const Breadcrumbs = ({
   inactiveItemClassName,
   activeItemStyle,
   activeItemClassName,
-}: BreadcrumbsProps) => {
+}: BreadcrumbsProperties) => {
   const router = useRouter();
-  const [breadcrumbs, setBreadcrumbs] = useState<Array<Breadcrumb> | null>(
-    null,
-  );
+  const [breadcrumbs, setBreadcrumbs] = useState<
+    Array<Breadcrumb> | undefined
+  >();
 
   useEffect(() => {
     if (router) {
       const linkPath = router.asPath.split('/');
       linkPath.shift();
 
-      const pathArray = linkPath.map((path, i) => {
+      const pathArray = linkPath.map((path, index) => {
         return {
           breadcrumb: path,
-          href: '/' + linkPath.slice(0, i + 1).join('/'),
+          href: '/' + linkPath.slice(0, index + 1).join('/'),
         };
       });
 
@@ -192,7 +189,7 @@ const Breadcrumbs = ({
   }, [router]);
 
   if (!breadcrumbs) {
-    return null;
+    return;
   }
 
   return (
@@ -214,12 +211,12 @@ const Breadcrumbs = ({
             </Link>
           </div>
         )}
-        {breadcrumbs.length >= 1 &&
-          breadcrumbs.map((breadcrumb, i) => {
+        {breadcrumbs.length > 0 &&
+          breadcrumbs.map((breadcrumb, index) => {
             if (
               !breadcrumb ||
               breadcrumb.breadcrumb.length === 0 ||
-              (omitIndexList && omitIndexList.find((value) => value === i))
+              (omitIndexList && omitIndexList.includes(index))
             ) {
               return;
             }
@@ -229,12 +226,12 @@ const Breadcrumbs = ({
                 <div
                   key={breadcrumb.href}
                   className={
-                    i === breadcrumbs.length - 1
+                    index === breadcrumbs.length - 1
                       ? activeItemClassName
                       : inactiveItemClassName
                   }
                   style={
-                    i === breadcrumbs.length - 1
+                    index === breadcrumbs.length - 1
                       ? activeItemStyle
                       : inactiveItemStyle
                   }

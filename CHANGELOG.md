@@ -4,6 +4,13 @@
 
 - [mu miror](https://editor.p5js.org/wyattroy/sketches/s1v8O0WBf) from [youtube](https://www.youtube.com/watch?v=2BCMZMRFljI&t=1s) in combination with music visualizer
 
+## 0.7.0
+
+- Siteswap (Alpha)
+  - vanilla, sync, multiplex, and crossing sync throws
+  - ball and hand customization
+  - temp customization
+
 ## 0.6.1
 
 - update packages

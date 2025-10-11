@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Widget } from '../Widget/Widget';
-import {
-  ANIMATION_CONFIG,
-  Ball,
-  Hand,
-  Throw,
-} from './animation-types';
+import { ANIMATION_CONFIG, Ball, Hand, Throw } from './animation-types';
 import { parseSiteswap } from './siteswap-parser';
 import { getStyles } from './styles';
 import { useJugglingAnimation } from './useJugglingAnimation';
@@ -68,7 +63,10 @@ export default function SiteswapAnimation() {
         0.1,
         Math.min(result.numBalls / (result.numBalls > 5 ? 20 : 10), 0.8),
       );
-      setAnimParams((previous) => ({ ...previous, handSeparation: newSeparation }));
+      setAnimParams((previous) => ({
+        ...previous,
+        handSeparation: newSeparation,
+      }));
     }
   }, [siteswap]);
 
@@ -105,6 +103,12 @@ export default function SiteswapAnimation() {
     setError,
   });
 
+  const CASCADE_SITESWAPS = ['3', '4', '5', '7', '9'];
+  const SHOWER_SITESWAPS = ['51', '71', '91'];
+  const SYNC_SITESWAPS = ['(4,4)', '(6,6)', '(8,8)'];
+  const CROSSING_SYNC_SITESWAPS = ['(4x,2x)', '(6x,4x)', '(8x,6x)'];
+  const MULTIPLEX_SITESWAPS = ['[34]1'];
+  const MISC_SITESWAPS = ['441', '531'];
   return (
     <div style={styles.container}>
       <h1>Siteswap Animator (Alpha)</h1>
@@ -138,7 +142,9 @@ export default function SiteswapAnimation() {
             id='bpm-input'
             type='number'
             value={bpm}
-            onChange={(event) => setBpm(Number.parseInt(event.target.value, 10))}
+            onChange={(event) =>
+              setBpm(Number.parseInt(event.target.value, 10))
+            }
             min='30'
             max='300'
             style={styles.input}
@@ -159,21 +165,12 @@ export default function SiteswapAnimation() {
           }}
         >
           {[
-            '3',
-            '4',
-            '5',
-            '7',
-            '9',
-            '441',
-            '531',
-            '51',
-            '71',
-            '91',
-            '(4,4)',
-            '(6,6)',
-            '(8,8)',
-            '(6x,4x)',
-            '[34]1',
+            ...CASCADE_SITESWAPS,
+            ...MISC_SITESWAPS,
+            ...SHOWER_SITESWAPS,
+            ...SYNC_SITESWAPS,
+            ...CROSSING_SYNC_SITESWAPS,
+            ...MULTIPLEX_SITESWAPS,
           ].map((preset) => (
             <button
               key={preset}
@@ -192,9 +189,7 @@ export default function SiteswapAnimation() {
           ))}
         </div>
       </Widget>
-      <div
-        style={styles.widgetContainer}
-      >
+      <div style={styles.widgetContainer}>
         <Widget<WidgetType>
           widget='ball'
           style={{

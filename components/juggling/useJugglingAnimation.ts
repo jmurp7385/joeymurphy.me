@@ -212,9 +212,14 @@ export const useJugglingAnimation = ({
         const yRadius = state.isFountain
           ? ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS
           : ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS;
-        const period = 2 * state.beatDuration;
+        const period = state.isSync
+          ? state.beatDuration
+          : 2 * state.beatDuration;
         const phase =
-          ((time % period) / period - hand.beat / 2) * Math.PI * 2 + Math.PI;
+          ((time % period) / period - (state.isSync ? 0 : hand.beat / 2)) *
+            Math.PI *
+            2 +
+          Math.PI;
         hand.x = hand.baseX + Math.sin(phase) * xRadius * hand.direction;
         hand.y = hand.baseY + Math.cos(phase) * yRadius;
       }
@@ -252,7 +257,8 @@ export const useJugglingAnimation = ({
             ball.startY = hand.y;
             ball.endX = landingHand.baseX;
             ball.flightDuration = isThrow(currentThrow)
-              ? (currentThrow.value - ANIMATION_CONFIG.DWELL_FACTOR) *
+              ? (currentThrow.value -
+                  (state.isSync ? ANIMATION_CONFIG.DWELL_FACTOR : 0)) *
                 state.beatDuration
               : 0;
             ball.currentThrow = isThrow(currentThrow) ? currentThrow.value : 0;
@@ -280,9 +286,8 @@ export const useJugglingAnimation = ({
             }
           }
 
-          hand.nextThrowTime = state.isSync
-            ? hand.nextThrowTime + state.beatDuration
-            : time + 2 * state.beatDuration;
+          hand.nextThrowTime =
+            (state.isSync ? hand.nextThrowTime : time) + 2 * state.beatDuration;
           hand.nextThrowValue =
             state.pattern[hand.patternIndex % state.pattern.length];
           hand.patternIndex += 2;
@@ -293,11 +298,18 @@ export const useJugglingAnimation = ({
         if (ball.inAir) {
           const timeInAir = time - ball.throwTime;
           if (timeInAir >= ball.flightDuration) {
-            ball.inAir = false;
-            const landingHand = state.hands.find((h) => h.baseX === ball.endX);
-            if (landingHand) {
-              landingHand.heldBalls.push(ball);
-              landingHand.heldBalls.sort((a, b) => a.id - b.id);
+            const dwellDuration = state.isSync
+              ? ANIMATION_CONFIG.DWELL_FACTOR * state.beatDuration
+              : 0;
+            if (timeInAir >= ball.flightDuration + dwellDuration) {
+              ball.inAir = false;
+              const landingHand = state.hands.find(
+                (h) => h.baseX === ball.endX,
+              );
+              if (landingHand) {
+                landingHand.heldBalls.push(ball);
+                landingHand.heldBalls.sort((a, b) => a.id - b.id);
+              }
             }
           } else {
             const progress = timeInAir / ball.flightDuration;

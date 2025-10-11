@@ -34,7 +34,7 @@ const ANIMATION_CONFIG = {
   DEFAULT_ACTIVE_BEAT_BORDER_COLOR: '#ffffff',
 };
 
-// Interface for a ball object in the juggling simulation
+/** Interface for a ball object in the juggling simulation. */
 export interface Ball {
   id: number; // Unique identifier for the ball
   x: number; // Current X-position in SVG,
@@ -44,30 +44,31 @@ export interface Ball {
   throwTime: number; // Simulated time (ms) when the ball is scheduled to throw next
   fromLeft: boolean; // Indicates if the ball is currently in the left hand
   currentThrow: number; // Current siteswap value (e.g., 3, 4, etc.)
-  throwIndex: number; // Current index in the siteswap pattern
-  controlX?: number; // Control point for the Bezier curve
-  isCrossingThrow?: boolean;
-  startX: number;
-  startY: number;
-  endX: number;
-  flightDuration: number;
-  throwHeight: number;
-  color: string;
+  throwIndex: number; // Index in the siteswap pattern for this throw
+  controlX: number; // X-coordinate of the Bezier curve control point for its trajectory
+  isCrossingThrow: boolean; // True if the throw crosses the center of the pattern (odd-numbered throws)
+  startX: number; // Starting X position of the throw
+  startY: number; // Starting Y position of the throw
+  endX: number; // Target X position of the throw
+  flightDuration: number; // Total time the ball will be in the air (ms)
+  throwHeight: number; // Peak height of the throw
+  color: string; // Color of the ball
 }
 
+/** Interface for a hand object in the juggling simulation. */
 export interface Hand {
-  id: number;
-  x: number;
-  y: number;
-  baseX: number;
-  baseY: number;
-  beat: number;
-  direction: number;
-  patternIndex: number;
-  heldBalls: Ball[];
-  nextThrowTime: number;
-  throwInOuterPlane: boolean;
-  nextThrowValue: number | number[];
+  id: number; // 0 for left, 1 for right
+  x: number; // Current X position, including oscillation
+  y: number; // Current Y position, including oscillation
+  baseX: number; // The center X position around which the hand oscillates
+  baseY: number; // The center Y position around which the hand oscillates
+  beat: number; // The beat on which this hand throws in an async pattern (0 or 1)
+  direction: number; // The direction of hand movement and non-crossing throws (-1 for right, 1 for left)
+  patternIndex: number; // The current index this hand is reading from in the siteswap pattern array
+  heldBalls: Ball[]; // An array of balls currently held by this hand
+  nextThrowTime: number; // The time (in ms) for the next scheduled throw
+  throwInOuterPlane: boolean; // Toggles for alternating throw planes (not currently used)
+  nextThrowValue: number | number[]; // The siteswap value of the next throw
 }
 
 /**
@@ -118,7 +119,7 @@ export default function SiteswapAnimation() {
     const parseForNumberBalls = (
       siteswapString: string,
     ): { numBalls: number } | undefined => {
-      try {
+      try { // A lightweight version of the main parser, just to get the ball count for UI adjustments.
         siteswapString = siteswapString.toLowerCase().replaceAll(/\s/g, '');
         if (!siteswapString) return undefined;
 
@@ -129,12 +130,15 @@ export default function SiteswapAnimation() {
         let match;
         while ((match = pattern.exec(siteswapString)) !== null) {
           if (isSync) {
-            throws.push(Number.parseInt(match[1].replace('x', ''), 36),Number.parseInt(match[2].replace('x', ''), 36));
+            // For sync patterns like (4,4), push both throws into the array.
+            throws.push(Number.parseInt(match[1].replace('x', ''), 36), Number.parseInt(match[2].replace('x', ''), 36));
           } else {
             const part = match[1];
             if (part.startsWith('[')) {
+              // For multiplex patterns like [34]2, parse each throw inside the brackets.
               throws.push(
                 [...part]
+                  .slice(1, -1) // Remove brackets before parsing
                   .map((t) => Number.parseInt(t, 36)),
               );
             } else {
@@ -142,6 +146,7 @@ export default function SiteswapAnimation() {
             }
           }
         }
+        // The number of balls is the average of all throw values in the pattern.
         const sum = throws.flat().reduce((a, b) => a + b, 0);
         if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
           return undefined;
@@ -153,6 +158,7 @@ export default function SiteswapAnimation() {
 
     const result = parseForNumberBalls(siteswap);
     if (result) {
+      // Automatically adjust hand separation based on the number of balls for a better visual.
       const newSeparation = Math.max(
         0.1,
         Math.min(result.numBalls / (result.numBalls > 5 ? 20 : 10), 0.8),
@@ -187,6 +193,15 @@ export default function SiteswapAnimation() {
 
     let animationFrameId: number;
 
+    /**
+     * Parses a siteswap string into its core components.
+     * @param siteswapString The siteswap pattern to parse (e.g., "531", "(4,4)", "[34]2").
+     * @returns An object containing the pattern as an array of numbers, the number of balls,
+     * and a boolean indicating if the pattern is synchronous.
+     * @throws An error if the siteswap string is invalid.
+     *
+     * This function handles standard, synchronous, and multiplex patterns. It uses base-36 parsing to allow for throws > 9 (e.g., 'a' for 10).
+     */
     const parseSiteswap = (
       siteswapString: string,
     ): {
@@ -206,7 +221,7 @@ export default function SiteswapAnimation() {
         while ((match = syncPattern.exec(siteswapString)) !== null) {
           const leftThrow = match[1].replace('x', '');
           const rightThrow = match[2].replace('x', '');
-          throws.push(Number.parseInt(leftThrow, 36),Number.parseInt(rightThrow, 36));
+          throws.push(Number.parseInt(leftThrow, 36), Number.parseInt(rightThrow, 36));
         }
         if (throws.length === 0)
           throw new Error('Invalid sync siteswap format.');
@@ -218,6 +233,7 @@ export default function SiteswapAnimation() {
           if (part.startsWith('[')) {
             throws.push(
               [...part]
+                .slice(1, -1) // Remove brackets before parsing
                 .map((t) => Number.parseInt(t, 36)),
             );
           } else {
@@ -226,6 +242,7 @@ export default function SiteswapAnimation() {
         }
       }
 
+      // A valid siteswap's average throw value must be an integer, which equals the number of balls.
       const sum = throws.flat().reduce((a, b) => a + b, 0);
       if (sum === 0 || throws.length === 0 || sum % throws.length !== 0)
         throw new Error('Invalid siteswap pattern.');
@@ -233,6 +250,11 @@ export default function SiteswapAnimation() {
       return { pattern: throws, numBalls: numberBalls, isSync };
     };
 
+    /**
+     * Resets the animation state. Called when the siteswap, BPM, or other core parameters change.
+     * @param newSiteswap The siteswap string to initialize the animation with.
+     * @param newBpm The beats per minute, which determines the animation speed.
+     */
     const resetAnimation = (newSiteswap: string, newBpm: number) => {
       try {
         const { pattern, numBalls, isSync } = parseSiteswap(newSiteswap);
@@ -242,6 +264,7 @@ export default function SiteswapAnimation() {
         state.numBalls = numBalls;
         state.isSync = isSync;
         state.beatDuration = 60_000 / newBpm;
+        // A "fountain" pattern consists entirely of even-numbered throws.
         state.isFountain = pattern.every((throwValue) => {
           if (Array.isArray(throwValue)) {
             return throwValue.every((t) => t > 0 && t % 2 === 0);
@@ -253,6 +276,7 @@ export default function SiteswapAnimation() {
         state.lastTime = 0;
 
         const handY = dimensions.height - ANIMATION_CONFIG.HAND_Y_OFFSET;
+        // Calculate hand positions based on canvas width and separation parameter.
         const centerX = dimensions.width / 2;
         const handDistribution = (dimensions.width * animParams.handSeparation) / 2;
         const leftHandX = centerX - handDistribution;
@@ -301,6 +325,8 @@ export default function SiteswapAnimation() {
             fromLeft: hand.id === 0,
             currentThrow: 0,
             throwIndex: 0,
+            controlX: 0,
+            isCrossingThrow: false,
             startX: 0,
             startY: 0,
             endX: 0,
@@ -320,17 +346,20 @@ export default function SiteswapAnimation() {
           return ball;
         });
 
+        // --- Initial Throw Scheduling ---
+        // This logic determines when each hand makes its first throw.
+
         if (isSync) {
           for (const hand of state.hands) {
             if (hand.heldBalls.length > 0) {
               hand.nextThrowValue =
                 state.pattern[hand.patternIndex % state.pattern.length];
               hand.nextThrowTime = 0;
-              hand.patternIndex += 1;
+              hand.patternIndex += 2; // Each hand must advance by 2 to stay on its track.
             }
           }
         } else {
-          // Find the first non-zero throw to start the animation, skipping initial '0's.
+          // For async patterns, find the first non-zero throw to start the animation, skipping initial '0's.
           let startBeat = 0;
           while (
             pattern[startBeat % pattern.length] === 0 &&
@@ -339,6 +368,7 @@ export default function SiteswapAnimation() {
             startBeat++;
           }
 
+          // Schedule the first throw for each ball in sequence.
           let beat = startBeat;
           for (let index = 0; index < numBalls; index++) {
             const hand = state.hands.find((h) => h.beat === beat % 2);
@@ -357,10 +387,16 @@ export default function SiteswapAnimation() {
       }
     };
 
+    /**
+     * The main update function, called on every animation frame.
+     * It progresses the simulation time, updates hand and ball positions,
+     * and handles throw/catch logic.
+     * @param time The current elapsed time of the animation in milliseconds.
+     */
     const update = (time: number) => {
       const state = animationState.current;
 
-      // Update hands
+      // --- 1. Update Hand Positions ---
       for (const hand of state.hands) {
         const xRadius = state.isFountain
           ? ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS
@@ -369,6 +405,7 @@ export default function SiteswapAnimation() {
           ? ANIMATION_CONFIG.HAND_OSCILLATION_X_RADIUS
           : ANIMATION_CONFIG.HAND_OSCILLATION_Y_RADIUS;
 
+        // Hands move in a circular/elliptical path to simulate a natural juggling motion.
         const period = state.isSync
           ? state.beatDuration
           : 2 * state.beatDuration;
@@ -378,7 +415,7 @@ export default function SiteswapAnimation() {
         hand.y = hand.baseY + Math.cos(phase) * yRadius;
       }
 
-      // Check for throws
+      // --- 2. Check for and Execute Throws ---
       for (const hand of state.hands) {
         if (hand.heldBalls.length > 0 && time >= hand.nextThrowTime) {
           const ball = hand.heldBalls.shift();
@@ -391,6 +428,8 @@ export default function SiteswapAnimation() {
             : throwValue;
 
           let landingHand: Hand;
+          // Determine the catching hand. In siteswap, odd throws cross to the other hand,
+          // while even throws are caught by the same hand.
           if (state.isSync) {
             const isCross = mainThrow % 2 !== 0;
             landingHand = isCross
@@ -408,6 +447,7 @@ export default function SiteswapAnimation() {
           ball.startY = hand.y;
           ball.endX = landingHand.baseX;
           ball.flightDuration = mainThrow * state.beatDuration;
+          // Throw height is proportional to the square of the throw value, simulating physics.
           const calculatedHeight =
             state.maxHeight *
             Math.pow(mainThrow / 5, 2) *
@@ -418,20 +458,27 @@ export default function SiteswapAnimation() {
             ball.startY - ANIMATION_CONFIG.BALL_RADIUS * 3,
           );
 
-          // The control point for the Bezier curve is offset to create separate planes
+          // The control point for the Bezier curve is used to create the arc of the throw.
           const planeOffset = 0; // Plane offset is removed.
           ball.controlX = ball.isCrossingThrow ? (ball.startX + ball.endX) / 2 + planeOffset : planeOffset * hand.direction;
 
-          hand.nextThrowTime =
-            time + (state.isSync ? state.beatDuration : 2 * state.beatDuration);
+          // Schedule the next throw for this hand.
+          // Sync patterns throw on every beat. Async patterns have each hand throw every 2 beats.
+          if (state.isSync) {
+            const currentBeat = Math.floor(time / state.beatDuration);
+            hand.nextThrowTime = (currentBeat + 1) * state.beatDuration;
+          } else {
+            hand.nextThrowTime = time + 2 * state.beatDuration;
+          }
           hand.nextThrowValue =
             state.pattern[hand.patternIndex % state.pattern.length];
           hand.throwInOuterPlane = !useOuterPlane;
-          hand.patternIndex += state.isSync ? 1 : 2;
+          // Each hand's pattern index must advance by 2 to stay on its "track" (e.g., left: 0, 2, 4...; right: 1, 3, 5...).
+          hand.patternIndex += 2; // Always advance by 2 for both sync and async.
         }
       }
 
-      // Update balls
+      // --- 3. Update Ball Positions ---
       for (const ball of state.balls) {
         if (ball.inAir) {
           const timeInAir = time - ball.throwTime;
@@ -445,11 +492,13 @@ export default function SiteswapAnimation() {
           } else {
             const progress = timeInAir / ball.flightDuration;
 
+            // --- Ball Trajectory Calculation ---
             if (ball.isCrossingThrow) {
-              // For crossing throws, use a Bezier curve with an ease-out effect.
+              // For crossing throws, use a quadratic Bezier curve for a natural arc.
+              // The horizontal motion has an "ease-out" effect for a more realistic look.
               const horizontalProgress = Math.sin(progress * (Math.PI / 2)); // Ease-out for crossing throws
               const p0x = ball.startX; // Start
-              const p1x = ball.controlX!; // Bezier control for plane separation
+              const p1x = ball.controlX; // Bezier control for arc shape
               const p2x = ball.endX; // End
               ball.x =
                 (1 - horizontalProgress) * (1 - horizontalProgress) * p0x +
@@ -457,16 +506,16 @@ export default function SiteswapAnimation() {
                 horizontalProgress * horizontalProgress * p2x;
             } else {
               // For same-hand throws (fountains), create a simple outward arc.
-              ball.x =
-                ball.startX + Math.sin(progress * Math.PI) * ball.controlX!;
+              ball.x = ball.startX + Math.sin(progress * Math.PI) * ball.controlX;
             }
 
-            // For a "1" throw (shower pass), use a very low, gentle arc.
-            // For all other throws, use the standard parabolic arc.
+            // The vertical motion follows a standard parabolic arc: y(t) = h * 4t(1-t)
+            // A "1" throw is given a lower, flatter arc for visual clarity.
             ball.y = ball.currentThrow === 1 && ball.isCrossingThrow ? ball.startY -
                 ball.throwHeight * 0.5 * Math.sin(progress * Math.PI) : ball.startY - ball.throwHeight * 4 * progress * (1 - progress);
           }
         } else {
+          // If the ball is not in the air, its position is locked to its holding hand.
           const holdingHand = state.hands.find((h) =>
             h.heldBalls.includes(ball),
           );
@@ -478,7 +527,10 @@ export default function SiteswapAnimation() {
       }
     };
 
-
+    /**
+     * Draws the current state of the animation onto the canvas.
+     * This function is purely for rendering and does not modify the animation state.
+     */
     const draw = () => {
       context.clearRect(0, 0, width, height);
       const { balls, hands, elapsedTime, beatDuration, isSync } =
@@ -487,6 +539,7 @@ export default function SiteswapAnimation() {
       const currentBeat = Math.floor(elapsedTime / beatDuration);
 
       for (const hand of hands) {
+        // Highlight the hand if it's its turn to throw.
         const isActive =
           colorParams.showBeatIndicator &&
           (isSync || currentBeat % 2 === hand.beat);
@@ -522,6 +575,10 @@ export default function SiteswapAnimation() {
       }
     };
 
+    /**
+     * The main animation loop, driven by requestAnimationFrame.
+     * @param currentTime The high-resolution timestamp provided by requestAnimationFrame.
+     */
     const animationLoop = (currentTime: number) => {
       const state = animationState.current;
       const deltaTime =
@@ -544,7 +601,6 @@ export default function SiteswapAnimation() {
       cancelAnimationFrame(animationFrameId);
     };
   }, [siteswap, bpm, isRunning, animParams, colorParams, dimensions.height, dimensions.width, width, height]);
-
 
   return (
     <div
@@ -591,6 +647,7 @@ export default function SiteswapAnimation() {
           padding: '10px',
           backgroundColor: '#2a2a2a',
           flexWrap: 'wrap',
+          flexDirection: 'row',
           borderRadius: '8px',
           width: '100%',
           justifyContent: 'center',
@@ -605,6 +662,7 @@ export default function SiteswapAnimation() {
             color: 'white',
             padding: '8px 15px',
             borderRadius: '4px',
+            maxWidth: '80px',
             cursor: 'pointer',
             fontWeight: 'bold',
           }}
@@ -676,6 +734,7 @@ export default function SiteswapAnimation() {
             '91',
             '(4,4)',
             '(6,6)',
+            '(8,8)',
             '(6x,4)',
             '[34]2',
           ].map((preset) => (

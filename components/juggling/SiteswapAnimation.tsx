@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Widget } from '../Widget';
-type WidgetType = 'ballColor' | 'siteswap' | 'animation';
+type WidgetType = 'ball' | 'siteswap' | 'animation' | 'hand';
 const ANIMATION_CONFIG = {
   // Canvas dimensions
   CANVAS_WIDTH: window.innerWidth * 0.8,
@@ -695,7 +695,7 @@ export default function SiteswapAnimation() {
         }}
       >
         <Widget<WidgetType>
-          widget='ballColor'
+          widget='ball'
           style={{
             backgroundColor: '#2a2a2a',
             borderRadius: '8px',
@@ -855,7 +855,7 @@ export default function SiteswapAnimation() {
           </div>
         </Widget>
         <Widget<WidgetType>
-          widget='siteswap'
+          widget='hand'
           backgroundColor='#2a2a2a'
           style={{
             flexGrow: '1',

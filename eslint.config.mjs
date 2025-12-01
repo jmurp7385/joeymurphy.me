@@ -1,14 +1,7 @@
-import { FlatCompat } from '@eslint/eslintrc';
-import js from '@eslint/js';
-import eslintPluginUnicorn from 'eslint-plugin-unicorn';
+import globals from 'globals';
 
-const compat = new FlatCompat({
-  // import.meta.dirname is available after Node.js v20.11.0
-  baseDirectory: import.meta.dirname,
-  recommendedConfig: js.configs.recommended,
-});
-
-const eslintConfig = [
+/** @type {import('eslint').Linter.FlatConfig[]} */
+export default [
   {
     ignores: [
       'node_modules/**',
@@ -16,17 +9,62 @@ const eslintConfig = [
       'out/**',
       'build/**',
       'next-env.d.ts',
+      'public/service-worker.js',
+      'dist/',
+      '*.config.js',
+      '*.config.ts',
     ],
   },
-  eslintPluginUnicorn.configs.recommended,
   {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        React: 'readonly',
+        JSX: 'readonly',
+      },
+      parser: (await import('@typescript-eslint/parser')).default,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+        project: './tsconfig.json',
+      },
+    },
+  },
+  {
+    settings: {
+      react: {
+        version: 'detect',
+      },
+      next: {
+        rootDir: '.',
+      },
+    },
+    plugins: {
+      unicorn: (await import('eslint-plugin-unicorn')).default,
+      '@typescript-eslint': (await import('@typescript-eslint/eslint-plugin'))
+        .default,
+      react: (await import('eslint-plugin-react')).default,
+      'react-hooks': (await import('eslint-plugin-react-hooks')).default,
+    },
     rules: {
+      // Next.js rules
+      'react/react-in-jsx-scope': 'off',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+
+      // Unicorn rules
       'unicorn/filename-case': 'off',
       'unicorn/prevent-abbreviations': [
         'error',
         {
           replacements: {
             props: false,
+            prop: false,
             params: false,
             args: false,
             ref: false,
@@ -37,9 +75,4 @@ const eslintConfig = [
       ],
     },
   },
-  ...compat.extends('eslint:recommended'),
-  ...compat.extends('next/typescript'),
-  ...compat.extends('next/core-web-vitals'),
 ];
-
-export default eslintConfig;

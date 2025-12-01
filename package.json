@@ -1,6 +1,6 @@
 {
   "name": "joeymurphy.me",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "main": "./pages/index.tsx",
   "scripts": {
@@ -16,26 +16,26 @@
     "@vercel/analytics": "^1.5.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "d3": "^7.9.0",
-    "next": "15.5.4",
+    "next": "16.0.6",
     "next-seo": "^6.8.0",
     "next-transpile-modules": "^10.0.1",
-    "p5": "^2.0.5",
+    "p5": "^2.1.1",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.37.0",
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.1",
     "@iconify-icons/cib": "^1.2.4",
     "@iconify/react": "^6.0.2",
     "@types/d3": "^7.4.3",
-    "@types/node": "^24.7.1",
-    "@types/p5": "^1.7.6",
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.1",
-    "eslint": "9.37.0",
-    "eslint-config-next": "15.5.4",
-    "eslint-plugin-unicorn": "^61.0.2",
+    "@types/node": "^24.10.1",
+    "@types/p5": "^1.7.7",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.0.6",
+    "eslint-plugin-unicorn": "^62.0.0",
     "typescript": "~5.9.3"
   },
   "browserslist": [
@@ -44,5 +44,5 @@
     "not ie <= 11",
     "not op_mini all"
   ],
-  "packageManager": "yarn@4.10.3"
+  "packageManager": "yarn@4.12.0"
 }

@@ -1,10 +1,10 @@
-import Head from 'next/head';
-import styles from '../styles/Home.module.css';
-import { NextSeo } from 'next-seo';
-import Footer from '../components/Footer';
-import Link from 'next/link';
 import { Icon } from '@iconify/react';
+import { NextSeo } from 'next-seo';
 import { OpenGraph } from 'next-seo/lib/types';
+import Head from 'next/head';
+import Link from 'next/link';
+import Footer from '../components/Footer';
+import styles from '../styles/Home.module.css';
 
 const SEO: OpenGraph = {
   title: 'Joey Murphy',
@@ -30,8 +30,10 @@ export default function Home() {
         <h1 className={styles.title}>Joey Murphy</h1>
         <p className={styles.description}>
           <a href='https://github.com/jmurp7385'>Software Engineer</a>
-          &nbsp;&&nbsp;
+          &nbsp;|&nbsp;
           <a href='https://www.joeymurphy.photography/'>Photographer</a>
+          &nbsp;|&nbsp;
+          <a href='https://www.jugglingcodex.com/'>Juggler</a>
         </p>
         <div className={styles.row}>
           <Icon

@@ -6,6 +6,21 @@ const bookList: Book[] = [
     date: '2/19/25',
     link: '',
   },
+   {
+    title: "Frugal Wizard's Handbook for Surviving Medieval England",
+    date: '3/6/25',
+    link: '',
+  },
+   {
+    title: "Sunrise on the Reaping",
+    date: '8/21/25',
+    link: '',
+  },
+   {
+    title: 'The Iliad (Richmond Lattimore Translation)',
+    date: '12/31/25',
+    link: '',
+  },
 ];
 
 export default function ReadingList2025() {

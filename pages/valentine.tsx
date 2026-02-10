@@ -12,6 +12,7 @@ export default function ValentinePage() {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [noButton, setNoButton] = useState({ x: 40, y: 220, size: BUTTON_SIZE });
 	const [yesButton, setYesButton] = useState({ x: 0, y: 220, size: BUTTON_SIZE });
+	const [particleCount, setParticleCount] = useState(50);
 	const [noHovered, setNoHovered] = useState(false);
 	const [congrats, setCongrats] = useState(false);
 
@@ -24,7 +25,11 @@ export default function ValentinePage() {
 		const headerRect = header ? header.getBoundingClientRect() : null;
 		const headerBottom = headerRect ? Math.max(0, headerRect.bottom - rect.top) : Math.max(0, rect.height * 0.12);
 
-		const yesSize = Math.max(MIN_SIZE, Math.min(yesButton.size || BUTTON_SIZE, MAX_SIZE));
+		// pick base sizes according to viewport width for mobile responsiveness
+		let baseSize = BUTTON_SIZE;
+		if (rect.width < 420) baseSize = 84;
+		else if (rect.width < 640) baseSize = 100;
+		const yesSize = Math.max(MIN_SIZE, Math.min(baseSize, MAX_SIZE));
 		// center under the header text when possible
 		const headerCenterX = headerRect ? (headerRect.left - rect.left + headerRect.width / 2) : rect.width / 2;
 		const yesCenterX = headerCenterX;
@@ -33,14 +38,18 @@ export default function ValentinePage() {
 		const yesY = Math.max(0, Math.min(yesCenterY - yesSize / 2, rect.height - yesSize));
 
 		// place No to the left of Yes if space, otherwise to the right
-		const noSize = Math.max(MIN_SIZE, Math.min(noButton.size || BUTTON_SIZE, MAX_SIZE));
+		const noSize = Math.max(MIN_SIZE, Math.min(baseSize, MAX_SIZE));
 		let noX = yesX - noSize - 24;
 		if (noX < 8) noX = Math.min(rect.width - noSize - 8, yesX + yesSize + 24);
 		const noY = yesY;
 
 		setYesButton({ x: yesX, y: yesY, size: yesSize });
-		setNoButton((previous) => ({ x: noX, y: noY, size: previous.size }));
-		}, [yesButton.size, noButton.size]);
+		setNoButton((previous) => ({ x: noX, y: noY, size: noSize }));
+		// adjust particle count for smaller viewports
+		if (rect.width < 420) setParticleCount(18);
+		else if (rect.width < 640) setParticleCount(30);
+		else setParticleCount(50);
+		}, []);
 
 		// initial placement and on mount
 		useEffect(() => {
@@ -233,9 +242,7 @@ export default function ValentinePage() {
 			}}
 			onMouseMove={handleMouseMove}
 		>
-			<h1 style={{ position: "absolute", top: "28%", fontSize: 36, color: "#d72660", marginBottom: 24 }}>
-				Will you be my valentine?
-			</h1>
+			<h1 className="title">Will you be my valentine?</h1>
 
 			<div style={{ width: "100vw", height: "100vh", position: "relative" }}>
 				{/* Centered group under the heading */}
@@ -256,7 +263,7 @@ export default function ValentinePage() {
 								pointerEvents: "auto",
 							}}
 							onMouseEnter={() => { if (noHovered) moveNoButton(); else setNoHovered(true); }}
-							onClick={() => alert("Are you sure? 😢")}
+							onClick={() => { alert("Today is actually opposite day, so no means yes!"); setCongrats(true); }}
 						>
 							No
 						</button>
@@ -304,7 +311,7 @@ export default function ValentinePage() {
 							transformOrigin: "center",
 						}}
 						onMouseEnter={() => moveNoButton()}
-						onClick={() => alert("Are you sure? 😢")}
+						onClick={() => { alert("happy opposite day"); setCongrats(true); }}
 					>
 						No
 					</button>
@@ -321,12 +328,29 @@ export default function ValentinePage() {
 								))}
 							</div>
 						</div>
-						<ParticleLayer count={50} />
+						<ParticleLayer count={particleCount} />
 					</>
 				)}
 			</div>
 
 			<style jsx>{`
+				.title {
+					position: absolute;
+					top: 24%;
+					left: 50%;
+					transform: translateX(-50%);
+					font-size: 36px;
+					color: #d72660;
+					margin-bottom: 24px;
+				}
+
+				@media (max-width: 640px) {
+					.title { font-size: 28px; top: 18%; }
+				}
+				@media (max-width: 420px) {
+					.title { font-size: 22px; top: 14%; }
+				}
+
 				.heart {
 					color: #ff5eae;
 					text-shadow: 0 8px 20px rgba(215,38,96,0.25);
@@ -335,7 +359,7 @@ export default function ValentinePage() {
 				@keyframes agitatedRise {
 					0% { transform: translateY(0) translateX(0) rotate(0) scale(0.85); opacity: 1; }
 					50% { transform: translateY(-60px) translateX(12px) rotate(18deg) scale(1); opacity: 1; }
-						100% { transform: translateY(-420px) translateX(12px) rotate(8deg) scale(1.18); opacity: 0; }
+					100% { transform: translateY(-420px) translateX(12px) rotate(8deg) scale(1.18); opacity: 0; }
 				}
 			`}</style>
 		</div>

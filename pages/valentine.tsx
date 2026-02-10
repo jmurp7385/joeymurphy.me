@@ -321,7 +321,7 @@ export default function ValentinePage() {
 								))}
 							</div>
 						</div>
-						<ParticleLayer count={44} />
+						<ParticleLayer count={50} />
 					</>
 				)}
 			</div>
@@ -334,8 +334,7 @@ export default function ValentinePage() {
 				}
 				@keyframes agitatedRise {
 					0% { transform: translateY(0) translateX(0) rotate(0) scale(0.85); opacity: 1; }
-					30% { transform: translateY(-60px) translateX(12px) rotate(18deg) scale(1); opacity: 1; }
-						60% { transform: translateY(-200px) translateX(-18px) rotate(-18deg) scale(1.05); opacity: 1; }
+					50% { transform: translateY(-60px) translateX(12px) rotate(18deg) scale(1); opacity: 1; }
 						100% { transform: translateY(-420px) translateX(12px) rotate(8deg) scale(1.18); opacity: 0; }
 				}
 			`}</style>

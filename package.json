@@ -13,28 +13,28 @@
     "upgrade": "yarn dlx @next/codemod@canary upgrade latest"
   },
   "dependencies": {
-    "@vercel/analytics": "^1.5.0",
+    "@vercel/analytics": "^1.6.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "d3": "^7.9.0",
-    "next": "16.1.5",
+    "next": "16.1.6",
     "next-seo": "^6.8.0",
     "next-transpile-modules": "^10.0.1",
-    "p5": "^2.1.1",
-    "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "p5": "^2.2.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^9.39.2",
     "@iconify-icons/cib": "^1.2.4",
     "@iconify/react": "^6.0.2",
     "@types/d3": "^7.4.3",
     "@types/node": "^24.10.1",
     "@types/p5": "^1.7.7",
-    "@types/react": "19.2.7",
+    "@types/react": "19.2.13",
     "@types/react-dom": "19.2.3",
-    "eslint": "9.39.1",
-    "eslint-config-next": "16.0.7",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.1.6",
     "eslint-plugin-unicorn": "^62.0.0",
     "typescript": "~5.9.3"
   },

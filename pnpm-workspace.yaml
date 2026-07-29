@@ -1,6 +1,9 @@
 allowBuilds:
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - baseline-browser-mapping@2.11.6
+  - jsdom@30.0.1
 packages:
   # if you have an app in the root
   - '.'

@@ -2,7 +2,7 @@ import { RefObject, useEffect } from 'react';
 import { ANIMATION_CONFIG, Ball, Hand, Throw } from './animation-types';
 import { ParsedSiteswap, parseSiteswap } from './siteswap-parser';
 
-interface JugglingAnimationProps {
+interface JugglingAnimationProperties {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   siteswap: string;
   bpm: number;
@@ -57,7 +57,7 @@ export const useJugglingAnimation = ({
   dimensions,
   animationState,
   setError,
-}: JugglingAnimationProps) => {
+}: JugglingAnimationProperties) => {
   const { width, height } = dimensions;
 
   useEffect(() => {

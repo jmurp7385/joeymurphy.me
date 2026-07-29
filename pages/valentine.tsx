@@ -9,7 +9,7 @@ const MAX_SIZE = 180;
 const minGap = 28;
 
 export default function ValentinePage() {
-	const containerRef = useRef<HTMLDivElement | null>(null);
+	const containerReference = useRef<HTMLDivElement | null>(null);
 	const [noButton, setNoButton] = useState({ x: 40, y: 220, size: BUTTON_SIZE });
 	const [yesButton, setYesButton] = useState({ x: 0, y: 220, size: BUTTON_SIZE });
 	const [particleCount, setParticleCount] = useState(50);
@@ -18,7 +18,7 @@ export default function ValentinePage() {
 
 	// Recenter helper: center Yes under heading and place No beside it
 	const recenterButtons = useCallback(() => {
-		const container = containerRef.current;
+		const container = containerReference.current;
 		if (!container) return;
 		const rect = container.getBoundingClientRect();
 		const header = container.querySelector("h1");
@@ -65,7 +65,7 @@ export default function ValentinePage() {
 
 	const moveNoButton = () => {
 		setNoHovered(true);
-		const container = containerRef.current;
+		const container = containerReference.current;
 		if (!container) return;
 		const rect = container.getBoundingClientRect();
 		const newSize = Math.max(MIN_SIZE, noButton.size * SHRINK_FACTOR);
@@ -125,7 +125,7 @@ export default function ValentinePage() {
 		const [, setTick] = useState(0);
 
 		useEffect(() => {
-			const container = containerRef.current;
+			const container = containerReference.current;
 			if (!container) return;
 			const rect = container.getBoundingClientRect();
 			const header = container.querySelector("h1");
@@ -212,7 +212,7 @@ export default function ValentinePage() {
 	};
 
 	const handleMouseMove = (event: React.MouseEvent) => {
-		const container = containerRef.current;
+		const container = containerReference.current;
 		if (!container) return;
 		const rect = container.getBoundingClientRect();
 		const mouseX = event.clientX - rect.left;
@@ -228,7 +228,7 @@ export default function ValentinePage() {
 
 	return (
 		<div
-			ref={containerRef}
+			ref={containerReference}
 			style={{
 				width: "100vw",
 				height: "100vh",

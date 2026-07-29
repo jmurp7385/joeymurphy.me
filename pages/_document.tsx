@@ -2,8 +2,8 @@ import Document, { DocumentContext, Head, Html, Main, NextScript } from 'next/do
 
 class MyDocument extends Document {
   static async getInitialProps(context: DocumentContext) {
-    const initialProps = await Document.getInitialProps(context);
-    return { ...initialProps };
+    const initialProperties = await Document.getInitialProps(context);
+    return { ...initialProperties };
   }
 
   render() {

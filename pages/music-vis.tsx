@@ -27,12 +27,12 @@ interface VisualOptions {
 }
 
 export default function MusicVisualizer() {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const audioContextRef = useRef<AudioContext | undefined>(undefined);
-  const analyserRef = useRef<AnalyserNode | undefined>(undefined);
-  const animationFrameRef = useRef<number | undefined>(undefined);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioSourceRef = useRef<MediaElementAudioSourceNode | undefined>(undefined);
+  const svgReference = useRef<SVGSVGElement>(null);
+  const audioContextReference = useRef<AudioContext | undefined>(undefined);
+  const analyserReference = useRef<AnalyserNode | undefined>(undefined);
+  const animationFrameReference = useRef<number | undefined>(undefined);
+  const fileInputReference = useRef<HTMLInputElement>(null);
+  const audioSourceReference = useRef<MediaElementAudioSourceNode | undefined>(undefined);
 
   const [visualizationType, setVisualizationType] =
     useState<VisualizationType>('bars');
@@ -73,16 +73,16 @@ export default function MusicVisualizer() {
 
   const setupVisualizer = async (source: AudioNode) => {
     try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext();
+      if (!audioContextReference.current) {
+        audioContextReference.current = new AudioContext();
         console.log('AudioContext created');
       }
-      const audioContext = audioContextRef.current;
+      const audioContext = audioContextReference.current;
 
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = detail;
       analyser.smoothingTimeConstant = 0.8;
-      analyserRef.current = analyser;
+      analyserReference.current = analyser;
 
       source.connect(analyser);
       analyser.connect(audioContext.destination);
@@ -98,10 +98,10 @@ export default function MusicVisualizer() {
   const startMicAudio = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext();
+      if (!audioContextReference.current) {
+        audioContextReference.current = new AudioContext();
       }
-      const source = audioContextRef.current.createMediaStreamSource(stream);
+      const source = audioContextReference.current.createMediaStreamSource(stream);
       await setupVisualizer(source);
       setIsPlaying(true);
       console.log('Microphone audio started');
@@ -191,11 +191,11 @@ export default function MusicVisualizer() {
         .data(dataArray)
         .enter()
         .append('rect')
-        .attr('x', (_, index) => index * barWidth)
+        .attr('x', (_: unknown, index: number) => index * barWidth)
         .attr('width', barWidth - 1)
-        .attr('y', (d) => dimensions.height - (d / 255) * dimensions.height)
-        .attr('height', (d) => (d / 255) * dimensions.height)
-        .attr('fill', (d, index) =>
+        .attr('y', (d: number) => dimensions.height - (d / 255) * dimensions.height)
+        .attr('height', (d: number) => (d / 255) * dimensions.height)
+        .attr('fill', (d: number, index: number) =>
           getColor(index, bufferLength, (d / 255) * dimensions.height),
         );
     },
@@ -224,11 +224,11 @@ export default function MusicVisualizer() {
         .data(dataArray.slice(0, -1)) // Exclude last point to pair with next
         .enter()
         .append('line')
-        .attr('x1', (_, index) => xScale(index))
-        .attr('y1', (d) => yScale(d))
-        .attr('x2', (_, index) => xScale(index + 1))
-        .attr('y2', (_, index) => yScale(dataArray[index + 1]))
-        .attr('stroke', (d, index) => getColor(index, bufferLength, d)) // Color based on amplitude
+        .attr('x1', (_: unknown, index: number) => xScale(index))
+        .attr('y1', (d: number) => yScale(d))
+        .attr('x2', (_: unknown, index: number) => xScale(index + 1))
+        .attr('y2', (_: unknown, index: number) => yScale(dataArray[index + 1]))
+        .attr('stroke', (d: number, index: number) => getColor(index, bufferLength, d)) // Color based on amplitude
         .attr('stroke-width', visualOptions.waveThickness);
     },
     [
@@ -258,13 +258,13 @@ export default function MusicVisualizer() {
         .append('circle')
         .attr('cx', centerX)
         .attr('cy', centerY)
-        .attr('r', (d) => (d / 255) * maxRadius)
+        .attr('r', (d: number) => (d / 255) * maxRadius)
         .attr('fill', 'none')
-        .attr('stroke', (_, index) => getColor(index, circleData.length))
+        .attr('stroke', (_: unknown, index: number) => getColor(index, circleData.length))
         .attr('stroke-width', 2)
         .attr(
           'transform',
-          (_, index) =>
+          (_: unknown, index: number) =>
             `rotate(${(index / circleData.length) * 360 + rotationAngle
             }, ${centerX}, ${centerY})`,
         );
@@ -273,9 +273,9 @@ export default function MusicVisualizer() {
   );
 
   const startVisualization = useCallback(() => {
-    const svg = d3.select(svgRef.current);
-    const analyser = analyserRef.current;
-    if (!analyser || !svgRef.current) {
+    const svg = d3.select(svgReference.current);
+    const analyser = analyserReference.current;
+    if (!analyser || !svgReference.current) {
       console.error('Missing analyser or SVG element');
       setError('Visualization setup failed: missing components');
       return;
@@ -286,15 +286,15 @@ export default function MusicVisualizer() {
     const dataArray = new Uint8Array(bufferLength);
     console.log('Visualization started, buffer length:', bufferLength);
 
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
+    if (animationFrameReference.current) {
+      cancelAnimationFrame(animationFrameReference.current);
     }
 
     let rotationAngle = 0;
 
     const draw = () => {
-      if (!analyser || !svgRef.current) return;
-      animationFrameRef.current = requestAnimationFrame(draw);
+      if (!analyser || !svgReference.current) return;
+      animationFrameReference.current = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
 
       svg.selectAll('*').remove();
@@ -340,20 +340,20 @@ export default function MusicVisualizer() {
   const playAudio = async () => {
     if (audioElement && !isPlaying) {
       try {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new AudioContext();
+        if (!audioContextReference.current) {
+          audioContextReference.current = new AudioContext();
           console.log('AudioContext created in playAudio');
           const source =
-            audioContextRef.current.createMediaElementSource(audioElement);
-          audioSourceRef.current = source;
+            audioContextReference.current.createMediaElementSource(audioElement);
+          audioSourceReference.current = source;
           await setupVisualizer(source);
-        } else if (audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume();
+        } else if (audioContextReference.current.state === 'suspended') {
+          await audioContextReference.current.resume();
           console.log('AudioContext resumed');
         }
         console.log(
           'Attempting to play audio, current state:',
-          audioContextRef.current.state,
+          audioContextReference.current.state,
         );
         await audioElement.play();
         setIsPlaying(true);
@@ -383,7 +383,7 @@ export default function MusicVisualizer() {
   const stopAudio = () => {
     if (audioElement) {
       audioElement.pause();
-      // eslint-disable-next-line react-hooks/immutability
+       
       audioElement.currentTime = 0;
 
 
@@ -394,10 +394,10 @@ export default function MusicVisualizer() {
   };
 
   const resetVisualizer = () => {
-    if (animationFrameRef.current)
-      cancelAnimationFrame(animationFrameRef.current);
-    if (audioContextRef.current)
-      audioContextRef.current.close().catch(() => { });
+    if (animationFrameReference.current)
+      cancelAnimationFrame(animationFrameReference.current);
+    if (audioContextReference.current)
+      audioContextReference.current.close().catch(() => { });
     if (audioElement) audioElement.pause();
     setAudioElement(undefined);
     setIsPlaying(false);
@@ -416,9 +416,9 @@ export default function MusicVisualizer() {
       saturation: 100,
       lightness: 50,
     });
-    audioContextRef.current = undefined;
-    analyserRef.current = undefined;
-    audioSourceRef.current = undefined;
+    audioContextReference.current = undefined;
+    analyserReference.current = undefined;
+    audioSourceReference.current = undefined;
     console.log('Visualizer reset');
   };
 
@@ -490,32 +490,32 @@ export default function MusicVisualizer() {
   };
 
   useEffect(() => {
-    if (analyserRef.current && audioContextRef.current && isPlaying) {
-      analyserRef.current.fftSize = detail;
+    if (analyserReference.current && audioContextReference.current && isPlaying) {
+      analyserReference.current.fftSize = detail;
       startVisualization();
     }
   }, [detail, visualizationType, visualOptions, isPlaying, startVisualization]);
 
   useEffect(() => {
     if (audioElement) {
-      // eslint-disable-next-line react-hooks/immutability
+       
       audioElement.volume = volume; // This is a correct side-effect // This is a correct side-effect
     }
   }, [volume, audioElement]);
 
   useEffect(() => {
     if (audioElement && Math.abs(audioElement.currentTime - currentTime) > 1) {
-      // eslint-disable-next-line react-hooks/immutability
+       
       audioElement.currentTime = currentTime; // This is a correct side-effect // This is a correct side-effect
     }
   }, [currentTime, audioElement]);
 
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current)
-        cancelAnimationFrame(animationFrameRef.current);
-      if (audioContextRef.current)
-        audioContextRef.current.close().catch(() => { });
+      if (animationFrameReference.current)
+        cancelAnimationFrame(animationFrameReference.current);
+      if (audioContextReference.current)
+        audioContextReference.current.close().catch(() => { });
       if (audioElement) audioElement.pause();
       console.log('Cleanup executed');
     };
@@ -571,7 +571,7 @@ export default function MusicVisualizer() {
           <input
             type='file'
             accept='audio/*'
-            ref={fileInputRef}
+            ref={fileInputReference}
             onChange={handleFileUpload}
             className={styles.fileInput}
           />
@@ -808,7 +808,7 @@ export default function MusicVisualizer() {
       </div>
       {error && <div className={styles.error}>{error}</div>}
 
-      <svg ref={svgRef} className={styles.canvas} />
+      <svg ref={svgReference} className={styles.canvas} />
     </div>
   );
 }

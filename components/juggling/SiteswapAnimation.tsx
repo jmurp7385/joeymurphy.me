@@ -11,7 +11,7 @@ type WidgetType = 'ball' | 'siteswap' | 'animation' | 'hand';
  * Renders a canvas-based juggling animation with support for async, sync, and multiplex patterns.
  */
 export default function SiteswapAnimation() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasReference = useRef<HTMLCanvasElement | null>(null);
   const [siteswap, setSiteswap] = useState(ANIMATION_CONFIG.DEFAULT_SITESWAP);
   const [dimensions, setDimensions] = useState({
     width: ANIMATION_CONFIG.WIDTH,
@@ -24,10 +24,10 @@ export default function SiteswapAnimation() {
   const [handSeparationOverride, setHandSeparationOverride] = useState<
     number | null
   >(null);
-  const [animParams, setAnimParams] = useState({
+  const [animParameters, setAnimParameters] = useState({
     throwHeight: ANIMATION_CONFIG.THROW_HEIGHT_SCALE_FACTOR,
   });
-  const [colorParams, setColorParams] = useState({
+  const [colorParameters, setColorParameters] = useState({
     activeBeatColor: ANIMATION_CONFIG.DEFAULT_ACTIVE_BEAT_COLOR,
     inactiveBeatColor: ANIMATION_CONFIG.DEFAULT_INACTIVE_BEAT_COLOR,
     activeBeatBorderColor: ANIMATION_CONFIG.DEFAULT_ACTIVE_BEAT_BORDER_COLOR,
@@ -98,15 +98,15 @@ export default function SiteswapAnimation() {
   const styles = getStyles(width);
 
   useJugglingAnimation({
-    canvasRef,
+    canvasRef: canvasReference,
     siteswap,
     bpm,
     isRunning,
     animParams: {
-      ...animParams,
+      ...animParameters,
       handSeparation,
     },
-    colorParams,
+    colorParams: colorParameters,
     dimensions,
     animationState,
     setError,
@@ -122,7 +122,7 @@ export default function SiteswapAnimation() {
     <div style={styles.container}>
       <h1>Siteswap Animator (Alpha)</h1>
       <canvas
-        ref={canvasRef}
+        ref={canvasReference}
         width={width}
         height={height}
         style={styles.canvas}
@@ -220,9 +220,9 @@ export default function SiteswapAnimation() {
             <input
               id='single-color-toggle'
               type='checkbox'
-              checked={colorParams.useSingleColor}
+              checked={colorParameters.useSingleColor}
               onChange={(event) =>
-                setColorParams((previous) => ({
+                setColorParameters((previous) => ({
                   ...previous,
                   useSingleColor: event.target.checked,
                 }))
@@ -235,7 +235,7 @@ export default function SiteswapAnimation() {
               gap: '10px',
             }}
           >
-            {colorParams.useSingleColor ? (
+            {colorParameters.useSingleColor ? (
               <>
                 <label
                   htmlFor='ball-color-picker'
@@ -246,9 +246,9 @@ export default function SiteswapAnimation() {
                 <input
                   id='ball-color-picker'
                   type='color'
-                  value={colorParams.singleBallColor}
+                  value={colorParameters.singleBallColor}
                   onChange={(event) =>
-                    setColorParams((previous) => ({
+                    setColorParameters((previous) => ({
                       ...previous,
                       singleBallColor: event.target.value,
                     }))
@@ -265,16 +265,16 @@ export default function SiteswapAnimation() {
                   type='range'
                   min='0'
                   max='360'
-                  value={colorParams.baseHue}
+                  value={colorParameters.baseHue}
                   onChange={(event) =>
-                    setColorParams((previous) => ({
+                    setColorParameters((previous) => ({
                       ...previous,
                       baseHue: Number.parseInt(event.target.value, 10),
                     }))
                   }
                   style={{ flexGrow: 1 }}
                 />
-                <span>{colorParams.baseHue}</span>
+                <span>{colorParameters.baseHue}</span>
               </>
             )}
           </div>
@@ -340,16 +340,16 @@ export default function SiteswapAnimation() {
               min='1'
               max='5'
               step='0.1'
-              value={animParams.throwHeight}
+              value={animParameters.throwHeight}
               onChange={(event) =>
-                setAnimParams((previous) => ({
+                setAnimParameters((previous) => ({
                   ...previous,
                   throwHeight: Number.parseFloat(event.target.value),
                 }))
               }
               style={{ flexGrow: 1 }}
             />
-            <span>{animParams.throwHeight.toFixed(1)}</span>
+            <span>{animParameters.throwHeight.toFixed(1)}</span>
           </div>
         </Widget>
         <Widget<WidgetType>
@@ -386,9 +386,9 @@ export default function SiteswapAnimation() {
                 id='active-color-picker'
                 type='color'
                 style={{ width: '100%' }}
-                value={colorParams.activeBeatColor}
+                value={colorParameters.activeBeatColor}
                 onChange={(event) =>
-                  setColorParams((previous) => ({
+                  setColorParameters((previous) => ({
                     ...previous,
                     activeBeatColor: event.target.value,
                   }))
@@ -409,9 +409,9 @@ export default function SiteswapAnimation() {
                 id='inactive-color-picker'
                 type='color'
                 style={{ width: '100%' }}
-                value={colorParams.inactiveBeatColor}
+                value={colorParameters.inactiveBeatColor}
                 onChange={(event) =>
-                  setColorParams((previous) => ({
+                  setColorParameters((previous) => ({
                     ...previous,
                     inactiveBeatColor: event.target.value,
                   }))
@@ -432,9 +432,9 @@ export default function SiteswapAnimation() {
                 id='border-color-picker'
                 type='color'
                 style={{ width: '100%' }}
-                value={colorParams.activeBeatBorderColor}
+                value={colorParameters.activeBeatBorderColor}
                 onChange={(event) =>
-                  setColorParams((previous) => ({
+                  setColorParameters((previous) => ({
                     ...previous,
                     activeBeatBorderColor: event.target.value,
                   }))
@@ -456,9 +456,9 @@ export default function SiteswapAnimation() {
               <input
                 id='beat-indicator-toggle'
                 type='checkbox'
-                checked={colorParams.showBeatIndicator}
+                checked={colorParameters.showBeatIndicator}
                 onChange={(event) =>
-                  setColorParams((previous) => ({
+                  setColorParameters((previous) => ({
                     ...previous,
                     showBeatIndicator: event.target.checked,
                   }))

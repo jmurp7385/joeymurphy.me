@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Widget } from '../Widget/Widget';
 import { ANIMATION_CONFIG, Ball, Hand, Throw } from './animation-types';
 import { parseSiteswap } from './siteswap-parser';
@@ -20,8 +20,11 @@ export default function SiteswapAnimation() {
   const [bpm, setBpm] = useState(ANIMATION_CONFIG.DEFAULT_BPM);
   const [isRunning, setIsRunning] = useState(true);
   const [error, setError] = useState('');
+  // User-controlled value for hand separation. `null` means use the derived value.
+  const [handSeparationOverride, setHandSeparationOverride] = useState<
+    number | null
+  >(null);
   const [animParams, setAnimParams] = useState({
-    handSeparation: ANIMATION_CONFIG.HAND_SEPARATION_FACTOR,
     throwHeight: ANIMATION_CONFIG.THROW_HEIGHT_SCALE_FACTOR,
   });
   const [colorParams, setColorParams] = useState({
@@ -47,28 +50,31 @@ export default function SiteswapAnimation() {
     lastTime: 0,
   });
 
-  // Effect to automatically adjust hand separation when the siteswap changes
-  useEffect(() => {
-    // This parser is just for calculating numBalls to update the UI.
-    // The main animation's useEffect has its own parser instance.
+  // Calculate the ideal hand separation based on the siteswap.
+  const derivedHandSeparation = useMemo(() => {
     let result;
     try {
       result = parseSiteswap(siteswap);
     } catch {
-      result = undefined;
+      return null; // Invalid siteswap, don't change separation.
     }
     if (result) {
-      // Automatically adjust hand separation based on the number of balls for a better visual.
-      const newSeparation = Math.max(
+      return Math.max(
         0.1,
         Math.min(result.numBalls / (result.numBalls > 5 ? 20 : 10), 0.8),
       );
-      setAnimParams((previous) => ({
-        ...previous,
-        handSeparation: newSeparation,
-      }));
     }
+    return null;
   }, [siteswap]);
+
+  // When the siteswap changes, reset the user's override so the new derived value is used.
+  useEffect(() => {
+    setHandSeparationOverride(null);
+  }, [siteswap]);
+
+  // Determine the effective hand separation to use for the animation.
+  const handSeparation =
+    handSeparationOverride ?? derivedHandSeparation ?? 0.3;
 
   useEffect(() => {
     const handleResize = () => {
@@ -96,7 +102,10 @@ export default function SiteswapAnimation() {
     siteswap,
     bpm,
     isRunning,
-    animParams,
+    animParams: {
+      ...animParams,
+      handSeparation,
+    },
     colorParams,
     dimensions,
     animationState,
@@ -306,16 +315,13 @@ export default function SiteswapAnimation() {
               min='0.1'
               max='0.8'
               step='0.01'
-              value={animParams.handSeparation}
+              value={handSeparation}
               onChange={(event) =>
-                setAnimParams((previous) => ({
-                  ...previous,
-                  handSeparation: Number.parseFloat(event.target.value),
-                }))
+                setHandSeparationOverride(Number.parseFloat(event.target.value))
               }
               style={{ flexGrow: 1 }}
             />
-            <span>{animParams.handSeparation.toFixed(2)}</span>
+            <span>{handSeparation.toFixed(2)}</span>
           </div>
           <div
             style={{

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { CSSProperties, ReactNode, useEffect, useState } from 'react';
+import React, { CSSProperties, ReactNode, useMemo } from 'react';
 import styles from './Breadcrumbs.module.css';
 
 /**
@@ -116,7 +116,7 @@ export interface BreadcrumbsProperties {
   inactiveItemClassName?: string;
 
   /** An inline style object for the active breadcrumb list item */
-  activeItemStyle?: CSSProperties ;
+  activeItemStyle?: CSSProperties;
 
   /** Classes to be used for the active breadcrumb list item */
   activeItemClassName?: string;
@@ -168,29 +168,21 @@ const Breadcrumbs = ({
   activeItemClassName,
 }: BreadcrumbsProperties) => {
   const router = useRouter();
-  const [breadcrumbs, setBreadcrumbs] = useState<
-    Array<Breadcrumb> | undefined
-  >();
-
-  useEffect(() => {
-    if (router) {
-      const linkPath = router.asPath.split('/');
-      linkPath.shift();
-
-      const pathArray = linkPath.map((path, index) => {
-        return {
-          breadcrumb: path,
-          href: '/' + linkPath.slice(0, index + 1).join('/'),
-        };
-      });
-
-      setBreadcrumbs(pathArray);
+  const breadcrumbs = useMemo(() => {
+    if (!router.asPath) {
+      return [];
     }
-  }, [router]);
+    const linkPath = router.asPath.split('/');
+    linkPath.shift();
 
-  if (!breadcrumbs) {
-    return;
-  }
+    const pathArray = linkPath.map((path, index) => {
+      return {
+        breadcrumb: path,
+        href: `/${linkPath.slice(0, index + 1).join('/')}`,
+      };
+    });
+    return pathArray;
+  }, [router.asPath]);
 
   return (
     <nav

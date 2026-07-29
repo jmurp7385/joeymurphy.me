@@ -44,31 +44,31 @@ export default function ValentinePage() {
 		const noY = yesY;
 
 		setYesButton({ x: yesX, y: yesY, size: yesSize });
-		setNoButton((previous) => ({ x: noX, y: noY, size: noSize }));
+		setNoButton({ x: noX, y: noY, size: noSize });
 		// adjust particle count for smaller viewports
 		if (rect.width < 420) setParticleCount(18);
 		else if (rect.width < 640) setParticleCount(30);
 		else setParticleCount(50);
-		}, []);
+	}, []);
 
-		// initial placement and on mount
-		useEffect(() => {
-			recenterButtons();
-		}, [recenterButtons]);
+	// initial placement and on mount
+	useEffect(() => {
+		recenterButtons();
+	}, [recenterButtons]);
 
-		// recenter on window resize
-		useEffect(() => {
-			const onResize = () => recenterButtons();
-			window.addEventListener("resize", onResize);
-			return () => window.removeEventListener("resize", onResize);
-		}, [recenterButtons]);
+	// recenter on window resize
+	useEffect(() => {
+		const onResize = () => recenterButtons();
+		window.addEventListener("resize", onResize);
+		return () => window.removeEventListener("resize", onResize);
+	}, [recenterButtons]);
 
 	const moveNoButton = () => {
 		setNoHovered(true);
 		const container = containerRef.current;
 		if (!container) return;
 		const rect = container.getBoundingClientRect();
-		let newSize = Math.max(MIN_SIZE, noButton.size * SHRINK_FACTOR);
+		const newSize = Math.max(MIN_SIZE, noButton.size * SHRINK_FACTOR);
 		const newYesSize = Math.min(MAX_SIZE, yesButton.size * GROW_FACTOR);
 		const header = container.querySelector("h1");
 		const headerRect = header ? header.getBoundingClientRect() : null;
@@ -155,8 +155,8 @@ export default function ValentinePage() {
 					// apply motion
 					p.x += p.vx * 60 * dt;
 					p.y += p.vy * 60 * dt;
-					  // gravity (reduced so particles travel higher before falling)
-					  p.vy += 0.03;
+					// gravity (reduced so particles travel higher before falling)
+					p.vy += 0.03;
 					// add per-frame jitter to create agitation
 					p.vx += (Math.random() - 0.5) * 0.8;
 					p.vy += (Math.random() - 0.5) * 0.4;
@@ -365,4 +365,3 @@ export default function ValentinePage() {
 		</div>
 	);
 }
-

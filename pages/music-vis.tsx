@@ -152,9 +152,8 @@ export default function MusicVisualizer() {
         }
         case 'monochrome': {
           // Green hue, vary lightness with amplitude
-          return `hsl(120, ${visualOptions.saturation}%, ${
-            20 + (amplitude / 255) * index
-          }%)`;
+          return `hsl(120, ${visualOptions.saturation}%, ${20 + (amplitude / 255) * index
+            }%)`;
         }
         case 'custom': {
           const colors =
@@ -266,8 +265,7 @@ export default function MusicVisualizer() {
         .attr(
           'transform',
           (_, index) =>
-            `rotate(${
-              (index / circleData.length) * 360 + rotationAngle
+            `rotate(${(index / circleData.length) * 360 + rotationAngle
             }, ${centerX}, ${centerY})`,
         );
     },
@@ -385,7 +383,10 @@ export default function MusicVisualizer() {
   const stopAudio = () => {
     if (audioElement) {
       audioElement.pause();
+      // eslint-disable-next-line react-hooks/immutability
       audioElement.currentTime = 0;
+
+
       setIsPlaying(false);
       setCurrentTime(0);
       console.log('Audio stopped');
@@ -396,7 +397,7 @@ export default function MusicVisualizer() {
     if (animationFrameRef.current)
       cancelAnimationFrame(animationFrameRef.current);
     if (audioContextRef.current)
-      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current.close().catch(() => { });
     if (audioElement) audioElement.pause();
     setAudioElement(undefined);
     setIsPlaying(false);
@@ -459,15 +460,11 @@ export default function MusicVisualizer() {
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = Number.parseFloat(event.target.value);
     setVolume(newVolume);
-    if (audioElement) audioElement.volume = newVolume;
   };
 
   const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = Number.parseFloat(event.target.value);
-    if (audioElement) {
-      audioElement.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
+    setCurrentTime(newTime);
   };
 
   const addCustomColor = () => {
@@ -500,11 +497,25 @@ export default function MusicVisualizer() {
   }, [detail, visualizationType, visualOptions, isPlaying, startVisualization]);
 
   useEffect(() => {
+    if (audioElement) {
+      // eslint-disable-next-line react-hooks/immutability
+      audioElement.volume = volume; // This is a correct side-effect // This is a correct side-effect
+    }
+  }, [volume, audioElement]);
+
+  useEffect(() => {
+    if (audioElement && Math.abs(audioElement.currentTime - currentTime) > 1) {
+      // eslint-disable-next-line react-hooks/immutability
+      audioElement.currentTime = currentTime; // This is a correct side-effect // This is a correct side-effect
+    }
+  }, [currentTime, audioElement]);
+
+  useEffect(() => {
     return () => {
       if (animationFrameRef.current)
         cancelAnimationFrame(animationFrameRef.current);
       if (audioContextRef.current)
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
       if (audioElement) audioElement.pause();
       console.log('Cleanup executed');
     };
@@ -518,8 +529,8 @@ export default function MusicVisualizer() {
             ? []
             : section)
           : (previous.includes(section)
-          ? previous.filter((s) => s !== section)
-          : [...previous, section]),
+            ? previous.filter((s) => s !== section)
+            : [...previous, section]),
       );
     };
   }
